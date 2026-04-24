@@ -21,11 +21,11 @@ export default function App() {
     dropping,
     floatingIds,
     splashes,
-    setSplashDelay: applySplashDelay,
     addTask,
     commitEdit,
     discardEdit,
     resurface,
+    startEditing,
     reposition,
     completeTask,
     floatAway,
@@ -33,7 +33,6 @@ export default function App() {
   const now = useClock();
   const zone = useScrollZone();
 
-  const [splashDelay, setSplashDelay] = useState(500);
   const [dragCompleteEnabled, setDragCompleteEnabled] = useState(true);
   const [gridEnabled, setGridEnabled] = useState(false);
   const focusedRef = useRef(null); // id of the card the cursor is currently over
@@ -50,11 +49,6 @@ export default function App() {
     },
     [gridEnabled, reposition]
   );
-
-  // Propagate slider tweaks to the hook's internal ref.
-  useEffect(() => {
-    applySplashDelay(splashDelay);
-  }, [splashDelay, applySplashDelay]);
 
   // --- Sky click: finalize any existing draft, then create a new card.
   function handleSkyClick(e) {
@@ -135,6 +129,7 @@ export default function App() {
             dragCompleteEnabled={dragCompleteEnabled}
             focusedRef={focusedRef}
             onResurface={resurface}
+            onEdit={startEditing}
             onComplete={completeTask}
             onCommitEdit={commitEdit}
             onDiscardEdit={discardEdit}
@@ -165,13 +160,7 @@ export default function App() {
         </div>
       )}
 
-      <div className={`hint ${zone === "floor" ? "deep" : ""}`}>
-        n new · click to resurface · hover + enter to complete
-      </div>
-
       <DevTools
-        splashDelay={splashDelay}
-        onSplashDelayChange={setSplashDelay}
         dragCompleteEnabled={dragCompleteEnabled}
         onDragCompleteChange={setDragCompleteEnabled}
         gridEnabled={gridEnabled}

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { DAY_MS, idleLabel } from "../lib/util.js";
+import { DAY_MS, hash01, idleLabel } from "../lib/util.js";
 import { CARD_H_VH, FLOOR_MAX_VH, WATERLINE_VH } from "../lib/geometry.js";
 import { useCardDrag } from "../hooks/useCardDrag.js";
 
@@ -25,6 +25,7 @@ export function TaskCard({
   now,
   // Callbacks
   onResurface,
+  onEdit,
   onComplete,
   onCommitEdit,
   onDiscardEdit,
@@ -35,7 +36,8 @@ export function TaskCard({
     leftPct,
     topVh,
     enabled: !isEditing && !isAscending && !isFloating,
-    onClick: () => onResurface(task.id),
+    // A click (not a drag) enters edit mode on the card.
+    onClick: () => onEdit(task.id),
     onDrop: (pos) => {
       if (dragCompleteEnabled && pos.topVh < WATERLINE_VH) {
         onFloatAway(task.id, pos.leftPct, pos.topVh);
@@ -65,6 +67,7 @@ export function TaskCard({
     isEditing ? "editing" : "",
     aboveWaterline ? "above-waterline" : "",
     isFloating ? "floating-away" : "",
+    dragPos ? "dragging" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -72,10 +75,27 @@ export function TaskCard({
   const activeLeft = dragPos ? dragPos.leftPct : leftPct;
   const activeTop = dragPos ? dragPos.topVh : topVh;
 
-  const bgAlpha = inSky ? 1 : Math.max(0.1, 0.82 - depth * 0.72);
-  const borderAlpha = inSky ? 0.15 : Math.max(0.08, 0.28 - depth * 0.22);
+  // Depth-driven styling. The goal: cards stay readable through the surface
+  // and middle zones (navy text on mostly-opaque white). Only in the floor
+  // zone do they flip to "glass" — cream text on translucent fill — so the
+  // water reads through them like a ghost card at rest.
+  const bgAlpha = inSky ? 1 : Math.max(0.38, 0.92 - depth * 0.5);
+  const borderAlpha = inSky ? 0.15 : Math.max(0.12, 0.28 - depth * 0.16);
   const shadowAlpha = inSky ? 0.18 : Math.max(0, 0.1 - depth * 0.14);
 
+  // Text color flips quickly in the floor zone (depth 0.7 → 0.85) so the
+  // muddy navy-to-cream midpoint only exists in a very narrow band.
+  const t = inSky ? 0 : Math.max(0, Math.min(1, (depth - 0.7) / 0.15));
+  const r = Math.round(4 + (255 - 4) * t);
+  const g = Math.round(44 + (248 - 44) * t);
+  const b = Math.round(83 + (220 - 83) * t);
+  const titleColor = `rgb(${r}, ${g}, ${b})`;
+  const metaColor = `rgba(${r}, ${g}, ${b}, ${0.65 + t * 0.1})`;
+
+  // Each card's sway takes a unique duration + phase so the scene never
+  // ticks in unison. Deeper cards bob more slowly (thicker water).
+  const swayDur = 5 + hash01(task.id, 11) * 4 + depth * 2;
+  const swayDelay = -hash01(task.id, 12) * 6;
   const style = {
     top: `${activeTop}vh`,
     left: `${activeLeft}%`,
@@ -85,8 +105,11 @@ export function TaskCard({
     borderColor: `rgba(4, 44, 83, ${borderAlpha})`,
     boxShadow:
       shadowAlpha > 0 ? `0 6px 22px rgba(4, 44, 83, ${shadowAlpha})` : "none",
+    color: titleColor,
     transition: dragPos || isDropping ? "none" : undefined,
     cursor: dragPos ? "grabbing" : "grab",
+    "--sway-dur": `${swayDur.toFixed(2)}s`,
+    "--sway-delay": `${swayDelay.toFixed(2)}s`,
   };
   if (isAscending) {
     // Rise clear of the viewport from wherever the card currently sits.
@@ -129,6 +152,7 @@ export function TaskCard({
         <ViewBody
           title={task.title}
           meta={sinkingSoon ? "sinking in 1d" : idleLabel(now - task.last_touched_at)}
+          metaColor={metaColor}
           onComplete={() => onComplete(task.id)}
         />
       )}
@@ -163,11 +187,11 @@ function EditingBody({ inputRef, initial, onCommit, onDiscard }) {
   );
 }
 
-function ViewBody({ title, meta, onComplete }) {
+function ViewBody({ title, meta, metaColor, onComplete }) {
   return (
     <>
       <div className="task-title">{title}</div>
-      <div className="task-meta">{meta}</div>
+      <div className="task-meta" style={{ color: metaColor }}>{meta}</div>
       <button
         className="check"
         aria-label="Complete task"

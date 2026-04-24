@@ -1,12 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { loadState, saveState } from "../lib/state.js";
 import { hash01, uid } from "../lib/util.js";
-import {
-  SKY_COMPOSE_VH,
-  WATERLINE_VH,
-  WATER_TOP_VH,
-  WATER_RANGE_VH,
-} from "../lib/geometry.js";
+import { SKY_COMPOSE_VH, WATERLINE_VH } from "../lib/geometry.js";
 
 // Animation timings (tune here, in one place).
 const DROP_CLEAR_MS = 1350;
@@ -14,10 +9,25 @@ const ASCENT_TOTAL_MS = 2500;
 const FLOAT_AWAY_MS = 1600;
 const SPLASH_LIFETIME_MS = 1100;
 
-// Approximate card width calc — matches layout.js so the splash is sized right.
-function cardWidthForDepth(id, depth) {
-  const hw = hash01(id, 2);
-  return Math.round((150 + hw * 50) * (1 - depth * 0.22));
+// Watch a card's real DOM position every frame. Fire `onCross` the first time
+// `predicate(rect, waterlinePx)` is true. Used for splashes on drop + ascent.
+function watchWaterlineCrossing(id, predicate, onCross) {
+  let fired = false;
+  function step() {
+    if (fired) return;
+    const el = document.querySelector(`[data-task-id="${id}"]`);
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const waterlinePx = (WATERLINE_VH / 100) * window.innerHeight;
+    if (predicate(rect, waterlinePx)) {
+      fired = true;
+      const xPct = ((rect.left + rect.width / 2) / window.innerWidth) * 100;
+      onCross(xPct, rect.width);
+      return;
+    }
+    requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
 }
 
 // The core state hook: tasks, editing flow, and all completion / drop / float
@@ -34,13 +44,6 @@ export function useCurrents() {
   const [dropping, setDropping] = useState(() => new Map()); // id -> vh distance above landing
   const [floatingIds, setFloatingIds] = useState(() => new Set());
   const [splashes, setSplashes] = useState([]);
-
-  // Tunable: splash delay relative to commit. Ref so timers read the latest value
-  // without re-firing the effect for a dependency change.
-  const splashDelayRef = useRef(500);
-  const setSplashDelay = useCallback((ms) => {
-    splashDelayRef.current = ms;
-  }, []);
 
   // Persist whenever the durable state changes.
   useEffect(() => {
@@ -96,15 +99,20 @@ export function useCurrents() {
         return;
       }
 
-      // Read the sky position from the current state snapshot.
+      // New tasks land in the "when you can" middle zone by default — the
+      // surface band ("doing now") is reserved for whatever you drag up and
+      // pin there explicitly.
       let distanceVh = 0;
       let landingX = 45;
       setTasks((prev) => {
         const skyTask = prev.find((t) => t.id === id);
         const skyX = skyTask?.manual_x ?? 45;
         const skyY = skyTask?.manual_y ?? SKY_COMPOSE_VH;
-        landingX = skyX;
-        const landingY = 26 + hash01(id, 8) * 6; // 26..32vh — just below the surface
+        // Middle band spans roughly 55..110vh with FLOOR_MAX_VH = 175 and
+        // surface ending at ~52vh (20% of the water range).
+        const landingY = 65 + hash01(id, 8) * 28; // 65..93vh — middle band
+        const xJitter = (hash01(id, 9) - 0.5) * 16; // ±8% sideways drift
+        landingX = Math.max(10, Math.min(90, skyX + xJitter));
         distanceVh = skyY - landingY;
 
         return prev.map((t) =>
@@ -124,13 +132,13 @@ export function useCurrents() {
       // Trigger drop animation (keyframes read --drop-from / --splash-y).
       setDropping((prev) => new Map(prev).set(id, distanceVh));
 
-      // Match the splash size to the landed card's width.
-      const landingDepth = Math.max(
-        0,
-        Math.min(1, (26 + hash01(id, 8) * 6 - WATER_TOP_VH) / WATER_RANGE_VH)
+      // Fire the splash the instant the card's bottom edge touches the
+      // waterline — watch the real rect, no timer guess.
+      watchWaterlineCrossing(
+        id,
+        (rect, waterlinePx) => rect.bottom >= waterlinePx,
+        spawnSplash
       );
-      const splashW = cardWidthForDepth(id, landingDepth);
-      setTimeout(() => spawnSplash(landingX, splashW), splashDelayRef.current);
       setTimeout(() => {
         setDropping((prev) => {
           const n = new Map(prev);
@@ -148,6 +156,11 @@ export function useCurrents() {
         t.id === id ? { ...t, last_touched_at: Date.now() } : t
       )
     );
+  }, []);
+
+  // Click a positioned card to edit its title in place.
+  const startEditing = useCallback((id) => {
+    setEditingId(id);
   }, []);
 
   const reposition = useCallback((id, leftPct, topVh) => {
@@ -172,25 +185,12 @@ export function useCurrents() {
         return new Set(prev).add(id);
       });
 
-      // Watch the card's real position; fire the splash the moment its top
-      // edge crosses the waterline. This is exact — no timing guess tied to
-      // how deep the card was when we started.
-      let splashFired = false;
-      function watch() {
-        if (splashFired) return;
-        const el = document.querySelector(`[data-task-id="${id}"]`);
-        if (!el) return;
-        const rect = el.getBoundingClientRect();
-        const waterlinePx = (WATERLINE_VH / 100) * window.innerHeight;
-        if (rect.top <= waterlinePx) {
-          splashFired = true;
-          const xPct = ((rect.left + rect.width / 2) / window.innerWidth) * 100;
-          spawnSplash(xPct, rect.width);
-          return;
-        }
-        requestAnimationFrame(watch);
-      }
-      requestAnimationFrame(watch);
+      // Fire the splash the moment the top edge crosses the waterline.
+      watchWaterlineCrossing(
+        id,
+        (rect, waterlinePx) => rect.top <= waterlinePx,
+        spawnSplash
+      );
 
       setTimeout(() => {
         setTasks((prev) => prev.filter((t) => t.id !== id));
@@ -241,13 +241,12 @@ export function useCurrents() {
     dropping,
     floatingIds,
     splashes,
-    // Tuning
-    setSplashDelay,
     // Actions
     addTask,
     commitEdit,
     discardEdit,
     resurface,
+    startEditing,
     reposition,
     completeTask,
     floatAway,

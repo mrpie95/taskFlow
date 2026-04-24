@@ -8,7 +8,7 @@ export function useScrollZone() {
     function update() {
       const max = document.documentElement.scrollHeight - window.innerHeight;
       const pct = max > 0 ? window.scrollY / max : 0;
-      setZone(pct < 0.33 ? "surface" : pct < 0.66 ? "middle" : "floor");
+      setZone(pct < 0.2 ? "surface" : pct < 0.6 ? "middle" : "floor");
     }
 
     update();

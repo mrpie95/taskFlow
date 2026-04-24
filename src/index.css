@@ -40,7 +40,7 @@ button { font-family: inherit; }
 .scene {
   position: relative;
   width: 100%;
-  height: 300vh;
+  height: 185vh;
   overflow: hidden;
 }
 
@@ -95,7 +95,7 @@ button { font-family: inherit; }
   position: absolute;
   top: 20vh;
   left: 0; right: 0;
-  height: calc(300vh - 20vh);
+  height: calc(185vh - 20vh);
   background: linear-gradient(180deg,
     var(--water-surface) 0%,
     var(--water-shallow) 10%,
@@ -330,21 +330,13 @@ button { font-family: inherit; }
   right: 0;
   pointer-events: none;
   z-index: 6;
-  opacity: 0.25;
-}
-.grid-line {
-  position: absolute;
-  background: rgba(255, 248, 220, 0.45);
-}
-.grid-col {
-  top: 0;
-  bottom: 0;
-  width: 1px;
-}
-.grid-row {
-  left: 0;
-  right: 0;
-  height: 1px;
+  opacity: 0.5;
+  background-image: radial-gradient(
+    circle,
+    rgba(255, 248, 220, 0.7) 1.2px,
+    transparent 1.8px
+  );
+  background-repeat: repeat;
 }
 
 /* ---------- Tasks ---------- */
@@ -362,42 +354,56 @@ button { font-family: inherit; }
   color: var(--ink);
   border: 0.5px solid rgba(4, 44, 83, 0.12);
   pointer-events: auto;
-  transition: top 700ms cubic-bezier(0.22, 1, 0.36, 1),
-              left 700ms cubic-bezier(0.22, 1, 0.36, 1),
+  transition: top 1200ms cubic-bezier(0.22, 1, 0.36, 1),
+              left 1200ms cubic-bezier(0.22, 1, 0.36, 1),
               background 300ms ease,
               border-color 300ms ease,
               box-shadow 300ms ease,
               color 300ms ease;
-  animation: cardSway 6s ease-in-out infinite;
+  /* Each card has its own sway cadence via CSS vars (set inline on the element). */
+  animation: cardSway var(--sway-dur, 6s) ease-in-out var(--sway-delay, 0s) infinite;
 }
 
+/* Ambient floating motion — slow vertical bob + faint horizontal drift. Every
+   card has a different duration + negative start delay so the scene is never
+   in sync with itself. */
 @keyframes cardSway {
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-2px); }
+  0%, 100% { transform: translate(0, 0); }
+  25%      { transform: translate(0.8px, -3px); }
+  50%      { transform: translate(0, -4.5px); }
+  75%      { transform: translate(-0.8px, -2.5px); }
 }
 
 .task-title {
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 500;
-  line-height: 1.4;
-  letter-spacing: 0.01em;
+  line-height: 1.35;
+  letter-spacing: 0.005em;
   word-break: break-word;
-  padding-right: 22px;
+  padding-right: 26px;
 }
 
 .task-meta {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 400;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   text-transform: lowercase;
   color: var(--ink-soft);
-  margin-top: 3px;
+  margin-top: 4px;
 }
 
 .task.sinking-soon {
   border-color: rgba(239, 159, 39, 0.6);
 }
 .task.sinking-soon .task-meta { color: #BA7517; }
+
+/* While being dragged — feels "picked up" */
+.task.dragging {
+  z-index: 20;
+  box-shadow: 0 16px 44px rgba(4, 44, 83, 0.28) !important;
+  animation: none !important;
+  scale: 1.04;
+}
 
 /* "Release to complete" affordance — card is above the waterline during drag */
 .task.above-waterline {
@@ -417,11 +423,12 @@ button { font-family: inherit; }
   100% { transform: translateY(-220px) scale(0.84); opacity: 0; }
 }
 
+/* Deep-zone border tint is still bumped via the class, but text / meta are
+   driven by the per-card interpolation (see TaskCard inline style). */
 .task.deep {
-  color: rgba(255, 248, 220, 0.88);
   border-color: rgba(255, 248, 220, 0.22) !important;
 }
-.task.deep .task-meta { color: rgba(255, 248, 220, 0.55); }
+
 
 .task input.task-edit {
   width: 100%;
@@ -429,30 +436,28 @@ button { font-family: inherit; }
   border: none;
   outline: none;
   color: inherit;
-  font: 500 13px/1.4 var(--font);
-  letter-spacing: 0.01em;
+  font: 500 16px/1.35 var(--font);
+  letter-spacing: 0.005em;
 }
 
 .task .check {
   position: absolute;
-  top: 8px; right: 10px;
-  width: 18px; height: 18px;
+  top: 10px; right: 12px;
+  width: 22px; height: 22px;
   border-radius: 50%;
-  border: 0.5px solid rgba(4, 44, 83, 0.35);
+  border: 1px solid currentColor;
   background: transparent;
-  color: var(--ink);
-  opacity: 0;
+  color: inherit;
+  opacity: 0.5;
   cursor: pointer;
   display: grid;
   place-items: center;
-  font-size: 10px;
-  transition: opacity 150ms ease, background 150ms ease;
+  font-size: 12px;
+  transition: opacity 150ms ease, background 150ms ease, transform 150ms ease;
   padding: 0;
 }
-.task.deep .check { border-color: rgba(255, 255, 255, 0.4); color: #fff; }
 .task:hover .check, .task:focus-within .check { opacity: 1; }
-.task .check:hover { background: rgba(4, 44, 83, 0.08); }
-.task.deep .check:hover { background: rgba(255, 255, 255, 0.15); }
+.task .check:hover { background: rgba(255, 255, 255, 0.25); transform: scale(1.08); }
 
 .task.ascending {
   animation: ascent 2500ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
@@ -478,10 +483,12 @@ button { font-family: inherit; }
   border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.9);
   transform: translate(-50%, -50%);
-  /* Ring grows to the full width of the card that caused the splash. */
+  /* Ring maxes at exactly the card's width. */
   width: var(--splash-w, 160px);
   height: var(--splash-w, 160px);
   opacity: 0;
+  /* Clip to upper half so the ripple only opens above the waterline. */
+  clip-path: inset(0 0 50% 0);
 }
 .splash-ring.ring-1 { animation: splashRing 1000ms ease-out forwards; }
 .splash-ring.ring-2 {
@@ -490,9 +497,9 @@ button { font-family: inherit; }
   animation: splashRing 1100ms ease-out 80ms forwards;
 }
 @keyframes splashRing {
-  0%   { opacity: 0.9; transform: translate(-50%, -50%) scale(0.15); }
-  40%  { opacity: 0.7; transform: translate(-50%, -50%) scale(0.55); }
-  100% { opacity: 0;   transform: translate(-50%, -50%) scale(1.05); }
+  0%   { opacity: 0.9; transform: translate(-50%, -50%) scale(0.2); }
+  40%  { opacity: 0.75; transform: translate(-50%, -50%) scale(0.7); }
+  100% { opacity: 0;    transform: translate(-50%, -50%) scale(1); }
 }
 
 .splash-drop {
@@ -504,12 +511,12 @@ button { font-family: inherit; }
   opacity: 0;
   animation: splashDrop 900ms cubic-bezier(0.3, 0, 0.5, 1) forwards;
 }
+/* Droplets only fly upward — no parabolic fall back below the surface. */
 @keyframes splashDrop {
   0%   { opacity: 0;   transform: translate(var(--dx), 0) scale(0.4); }
-  10%  { opacity: 1;   transform: translate(calc(var(--dx) * 0.4), calc(var(--dy1) * 0.5)) scale(1); }
-  45%  { opacity: 0.8; transform: translate(var(--dx), var(--dy1)) scale(0.8); }
-  80%  { opacity: 0.3; transform: translate(calc(var(--dx) * 1.1), 10px) scale(0.5); }
-  100% { opacity: 0;   transform: translate(calc(var(--dx) * 1.15), 18px) scale(0.4); }
+  15%  { opacity: 1;   transform: translate(calc(var(--dx) * 0.4), calc(var(--dy1) * 0.35)) scale(1); }
+  55%  { opacity: 0.8; transform: translate(var(--dx), var(--dy1)) scale(0.8); }
+  100% { opacity: 0;   transform: translate(calc(var(--dx) * 1.15), calc(var(--dy1) * 1.45)) scale(0.35); }
 }
 
 /* ---------- Drop animation (sky -> water) ----------
@@ -561,26 +568,6 @@ button { font-family: inherit; }
   color: rgba(4, 44, 83, 0.35);
 }
 
-/* ---------- "Will sink soon" divider ---------- */
-.sink-divider {
-  position: absolute;
-  left: 8%; right: 8%;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 9px;
-  letter-spacing: 0.16em;
-  color: rgba(250, 199, 117, 0.95);
-  text-transform: lowercase;
-  z-index: 5;
-  pointer-events: none;
-}
-.sink-divider .line {
-  flex: 1;
-  height: 0.5px;
-  background: rgba(250, 199, 117, 0.45);
-}
-
 /* ---------- UI chrome ---------- */
 .add-button {
   position: fixed;
@@ -600,6 +587,61 @@ button { font-family: inherit; }
   box-shadow: 0 4px 14px rgba(4, 44, 83, 0.12);
 }
 .add-button:hover { background: #FFF8DC; }
+
+/* ---------- Bioluminescence ---------- */
+.biolum {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+}
+.biolum-dot {
+  position: absolute;
+  border-radius: 50%;
+  will-change: opacity, transform;
+}
+@keyframes biolumPulse {
+  0%, 100% { opacity: 0; transform: scale(0.6); }
+  50%      { opacity: 0.85; transform: scale(1.1); }
+}
+
+/* ---------- Zone dividers ---------- */
+.zone-divider {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  pointer-events: none;
+  z-index: 4;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(255, 248, 220, 0.28) 22%,
+    rgba(255, 248, 220, 0.28) 78%,
+    transparent 100%
+  );
+}
+
+/* ---------- Zone labels ---------- */
+.zone-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+}
+.zone-label {
+  position: absolute;
+  right: 48px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: lowercase;
+  color: rgba(4, 44, 83, 0.55);
+  white-space: nowrap;
+}
+/* Invert the label color as the zone gets darker */
+.zone-label:nth-child(2) { color: rgba(255, 248, 220, 0.7); }
+.zone-label:nth-child(3) { color: rgba(255, 248, 220, 0.6); }
 
 .depth-indicator {
   position: fixed;

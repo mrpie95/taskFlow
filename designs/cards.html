@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Currents — card design iterations</title>
+<style>
+  /* ====================================================================
+     DESIGN TOKENS
+     Change values here first; every card below reads from these.
+     ==================================================================== */
+  :root {
+    /* Water / sky palette (so you can see cards on real backdrops) */
+    --water-surface: #E6F1FB;
+    --water-shallow: #9CBFE0;
+    --water-mid: #85B7EB;
+    --water-deep: #5C99D7;
+    --water-floor: #185FA5;
+    --water-floor-bottom: #042C53;
+    --sky-1: #F8E8C6;
+
+    /* Ink / cream */
+    --ink:     #042C53;
+    --cream:   #FFF8DC;
+    --amber:   #EF9F27;
+    --gold:    rgba(255, 232, 170, 0.85);
+
+    /* Typography */
+    --font: -apple-system, "Helvetica Neue", "Segoe UI", Roboto, sans-serif;
+    --title-size: 13px;
+    --title-weight: 500;
+    --meta-size: 10px;
+    --meta-letter: 0.1em;
+
+    /* Card shape */
+    --card-radius: 10px;
+    --card-pad-y: 11px;
+    --card-pad-x: 14px;
+    --card-min-w: 160px;
+    --card-max-w: 200px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font);
+    background: #EFEDE4;
+    color: #191919;
+    padding: 2rem;
+    line-height: 1.5;
+  }
+  h1 { font-size: 24px; font-weight: 500; margin-bottom: 4px; }
+  h2 { font-size: 14px; font-weight: 500; color: #555; margin: 0 0 8px; letter-spacing: 0.06em; text-transform: lowercase; }
+  p.caption { color: #666; font-size: 13px; margin-bottom: 2rem; max-width: 640px; }
+
+  .tokens {
+    background: #fff;
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 2.5rem;
+    font-size: 12px;
+    color: #555;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    border: 1px solid rgba(0,0,0,0.08);
+  }
+  .tokens span { color: #222; font-weight: 500; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .stage {
+    position: relative;
+    height: 180px;
+    border-radius: 14px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+  .stage .label {
+    position: absolute;
+    top: 8px; left: 10px;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: lowercase;
+    color: rgba(255,255,255,0.9);
+    background: rgba(4, 44, 83, 0.35);
+    padding: 3px 7px;
+    border-radius: 3px;
+    z-index: 2;
+  }
+  .stage.on-light .label { color: rgba(4,44,83,0.7); background: rgba(255,255,255,0.6); }
+
+  .stage.surface   { background: linear-gradient(180deg, var(--water-surface) 0%, var(--water-shallow) 100%); }
+  .stage.middle    { background: linear-gradient(180deg, var(--water-shallow) 0%, var(--water-deep) 100%); }
+  .stage.floor     { background: linear-gradient(180deg, var(--water-floor) 0%, var(--water-floor-bottom) 100%); }
+  .stage.sky       { background: linear-gradient(180deg, var(--sky-1) 0%, #F5EEDE 100%); }
+  .stage.plain     { background: #DDE8F0; }
+
+  /* ====================================================================
+     CARD — BASE
+     A single rule set; states below add/override.
+     ==================================================================== */
+  .task {
+    position: relative;
+    padding: var(--card-pad-y) var(--card-pad-x);
+    border-radius: var(--card-radius);
+    width: 180px;
+    background: #FFFFFF;
+    border: 0.5px solid rgba(4, 44, 83, 0.12);
+    box-shadow: 0 6px 22px rgba(4, 44, 83, 0.1);
+    color: var(--ink);
+    cursor: grab;
+  }
+  .task .title {
+    font-size: var(--title-size);
+    font-weight: var(--title-weight);
+    line-height: 1.4;
+    letter-spacing: 0.01em;
+    padding-right: 22px;
+  }
+  .task .meta {
+    font-size: var(--meta-size);
+    font-weight: 400;
+    letter-spacing: var(--meta-letter);
+    text-transform: lowercase;
+    color: rgba(4, 44, 83, 0.6);
+    margin-top: 3px;
+  }
+  .task .check {
+    position: absolute;
+    top: 8px; right: 10px;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    border: 0.5px solid rgba(4, 44, 83, 0.35);
+    background: transparent;
+    color: var(--ink);
+    display: grid;
+    place-items: center;
+    font-size: 10px;
+    cursor: pointer;
+  }
+
+  /* ====================================================================
+     CARD STATES
+     Each state is a single modifier class you can tweak independently.
+     ==================================================================== */
+
+  /* Surface-lit — brightest, opaque white, full shadow */
+  .task.surface {
+    background: rgba(255, 255, 255, 0.92);
+    color: rgb(4, 44, 83);
+  }
+
+  /* Middle — faded, less shadow, still navy text */
+  .task.middle {
+    background: rgba(255, 255, 255, 0.7);
+    border-color: rgba(4, 44, 83, 0.18);
+    box-shadow: 0 4px 14px rgba(4, 44, 83, 0.06);
+    color: rgb(4, 44, 83);
+  }
+
+  /* Floor — glassy, cream text on translucent fill */
+  .task.floor {
+    background: rgba(255, 255, 255, 0.35);
+    border: 0.5px solid rgba(255, 248, 220, 0.25);
+    box-shadow: none;
+    color: rgb(255, 248, 220);
+  }
+  .task.floor .meta { color: rgba(255, 248, 220, 0.6); }
+  .task.floor .check { border-color: rgba(255, 248, 220, 0.35); color: #fff; }
+
+  /* Editing — composing card in the sky */
+  .task.editing {
+    background: #FFFFFF;
+    padding: 13px 16px;
+    border-radius: 12px;
+    box-shadow: 0 8px 26px rgba(4, 44, 83, 0.2);
+  }
+  .task.editing input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: inherit;
+    font: var(--title-weight) var(--title-size)/1.4 var(--font);
+  }
+  .task.editing .drop-hint {
+    font-size: var(--meta-size);
+    color: rgba(4, 44, 83, 0.55);
+    margin-top: 6px;
+    letter-spacing: var(--meta-letter);
+    text-transform: lowercase;
+  }
+
+  /* Above-waterline — warm outline to signal "release to complete" */
+  .task.above-waterline {
+    box-shadow:
+      0 0 0 1.5px rgba(255, 232, 170, 0.85),
+      0 0 24px rgba(255, 232, 170, 0.55);
+  }
+
+  /* Sinking soon — subtle amber warning */
+  .task.sinking-soon {
+    border-color: rgba(239, 159, 39, 0.6);
+  }
+  .task.sinking-soon .meta { color: #BA7517; }
+
+  /* Ascending / floating-away — the snapshot mid-animation */
+  .task.ascending {
+    opacity: 0.7;
+    transform: translateY(-30px) scale(1.02);
+  }
+  .task.floating-away {
+    opacity: 0.5;
+    transform: translateY(-18px) scale(0.95);
+  }
+</style>
+</head>
+<body>
+
+<h1>Currents · card design iterations</h1>
+<p class="caption">
+  Every state of a task card, rendered outside the water scene against relevant
+  backdrops. Edit the CSS above (design tokens + per-state rules) and reload to
+  iterate. Each state is a single class; mix them as needed (e.g.
+  <code>.task.middle.sinking-soon</code>).
+</p>
+
+<div class="tokens">
+  ink=<span>#042C53</span> · cream=<span>#FFF8DC</span> ·
+  title=<span>13px / 500</span> · meta=<span>10px / 0.1em tracking</span> ·
+  radius=<span>10px</span> · shadow=<span>0 6px 22px ink/10%</span>
+</div>
+
+<h2>base card / all zones</h2>
+
+<div class="grid">
+
+  <div class="stage sky on-light">
+    <span class="label">composing (sky)</span>
+    <div class="task editing">
+      <input value="read McGilchrist" />
+      <div class="drop-hint">enter to drop ↓</div>
+    </div>
+  </div>
+
+  <div class="stage surface on-light">
+    <span class="label">surface</span>
+    <div class="task surface">
+      <div class="title">finish Q3 report</div>
+      <div class="meta">2m idle</div>
+      <button class="check">✓</button>
+    </div>
+  </div>
+
+  <div class="stage middle">
+    <span class="label">middle</span>
+    <div class="task middle">
+      <div class="title">book dentist</div>
+      <div class="meta">4h idle</div>
+      <button class="check">✓</button>
+    </div>
+  </div>
+
+  <div class="stage floor">
+    <span class="label">floor</span>
+    <div class="task floor">
+      <div class="title">learn rust</div>
+      <div class="meta">6d idle</div>
+      <button class="check">✓</button>
+    </div>
+  </div>
+
+  <div class="stage surface on-light">
+    <span class="label">sinking soon (surface)</span>
+    <div class="task surface sinking-soon">
+      <div class="title">macro shoot series</div>
+      <div class="meta">sinking in 1d</div>
+      <button class="check">✓</button>
+    </div>
+  </div>
+
+  <div class="stage surface on-light">
+    <span class="label">above waterline</span>
+    <div class="task surface above-waterline">
+      <div class="title">call mom</div>
+      <div class="meta">3h idle</div>
+      <button class="check">✓</button>
+    </div>
+  </div>
+
+  <div class="stage surface on-light">
+    <span class="label">ascending (mid-anim)</span>
+    <div class="task surface ascending">
+      <div class="title">morning walk</div>
+      <div class="meta">just now</div>
+    </div>
+  </div>
+
+  <div class="stage sky on-light">
+    <span class="label">floating away</span>
+    <div class="task surface floating-away">
+      <div class="title">review PRs</div>
+      <div class="meta">just now</div>
+    </div>
+  </div>
+
+</div>
+
+<h2>side-by-side / same backdrop, increasing depth</h2>
+
+<div class="grid">
+  <div class="stage plain on-light" style="height: 230px;">
+    <span class="label">light bg</span>
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div class="task surface"><div class="title">surface</div><div class="meta">1m idle</div></div>
+      <div class="task middle"><div class="title">middle</div><div class="meta">3h idle</div></div>
+      <div class="task floor"><div class="title">floor</div><div class="meta">5d idle</div></div>
+    </div>
+  </div>
+
+  <div class="stage middle" style="height: 230px;">
+    <span class="label">on water</span>
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div class="task surface"><div class="title">surface</div><div class="meta">1m idle</div></div>
+      <div class="task middle"><div class="title">middle</div><div class="meta">3h idle</div></div>
+      <div class="task floor"><div class="title">floor</div><div class="meta">5d idle</div></div>
+    </div>
+  </div>
+</div>
+
+<h2>open notes</h2>
+<p class="caption" style="margin-bottom: 0.5rem;">
+  Known weak spots worth iterating on:
+</p>
+<ul style="font-size: 13px; color: #555; line-height: 1.7; padding-left: 1.25rem; max-width: 640px;">
+  <li>Middle-zone card readability — currently feels washed out.</li>
+  <li>Floor zone cards can read as "broken" rather than "at rest" — want that calm quality.</li>
+  <li>The ✓ button always feels off; could be a hover-reveal pattern or entirely different.</li>
+  <li>"sinking soon" amber border is subtle but might be too aggressive next to a calm surface card.</li>
+  <li>Typography scale — 13px / 10px is tight on retina but tiny on a 4K monitor.</li>
+</ul>
+
+</body>
+</html>

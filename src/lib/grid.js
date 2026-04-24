@@ -4,8 +4,8 @@ import { FLOOR_MAX_VH, WATER_TOP_VH } from "./geometry.js";
 // nearest cell on drop. Kept simple on purpose — no mass snap-aligning
 // of pre-existing cards, no cell-occupancy check.
 
-export const GRID_COLS = 6;
-export const GRID_ROWS = 9;
+export const GRID_COLS = 12;
+export const GRID_ROWS = 14;
 export const GRID_TOP_VH = WATER_TOP_VH + 1;
 export const GRID_BOTTOM_VH = FLOOR_MAX_VH - 4; // keep the seabed clear
 export const COL_WIDTH_PCT = 100 / GRID_COLS;

@@ -1,10 +1,12 @@
-import { WATER_TOP_VH, WATER_RANGE_VH } from "../lib/geometry.js";
+import { Bioluminescence } from "./Bioluminescence.jsx";
 import { Clouds } from "./Clouds.jsx";
 import { Noise } from "./Noise.jsx";
 import { Particles } from "./Particles.jsx";
 import { Rays } from "./Rays.jsx";
 import { Seabed } from "./Seabed.jsx";
 import { Waves } from "./Waves.jsx";
+import { ZoneDividers } from "./ZoneDividers.jsx";
+import { ZoneLabels } from "./ZoneLabels.jsx";
 
 // The full ambient scene: sky + water + all background texture layers.
 // Click handling is delegated up so the parent can run its own create flow.
@@ -33,17 +35,9 @@ export function Scene({ onSkyClick }) {
       <Waves />
       <Rays />
       <Particles />
-
-      {/* "Will sink soon" boundary near the middle/floor transition */}
-      <div
-        className="sink-divider"
-        style={{ top: `${WATER_TOP_VH + 0.7 * WATER_RANGE_VH}vh` }}
-        aria-hidden="true"
-      >
-        <div className="line" />
-        <span>∼ will sink soon ∼</span>
-        <div className="line" />
-      </div>
+      <Bioluminescence />
+      <ZoneDividers />
+      <ZoneLabels />
     </>
   );
 }
