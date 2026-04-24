@@ -24,12 +24,13 @@
 }
 
 * { box-sizing: border-box; }
-html, body, #root { height: 100%; margin: 0; padding: 0; }
+html, body, #root { margin: 0; padding: 0; }
 body {
   font-family: var(--font);
   color: var(--ink);
   background: var(--water-floor-bottom);
   overflow-x: hidden;
+  overscroll-behavior-y: none;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -39,7 +40,8 @@ button { font-family: inherit; }
 .scene {
   position: relative;
   width: 100%;
-  min-height: 300vh;
+  height: 300vh;
+  overflow: hidden;
 }
 
 .sky {
@@ -118,12 +120,6 @@ button { font-family: inherit; }
     rgba(255, 240, 200, 0.1) 40%,
     transparent 70%);
   pointer-events: none;
-  animation: sunHighlightBreathe 22s ease-in-out infinite;
-  transform-origin: 75% 0%;
-}
-@keyframes sunHighlightBreathe {
-  0%, 100% { transform: scale(1) translateX(0); opacity: 1; }
-  50%      { transform: scale(1.08) translateX(-2%); opacity: 0.78; }
 }
 
 /* Shimmer layer — two very slow drifting light bands */
@@ -134,6 +130,9 @@ button { font-family: inherit; }
   pointer-events: none;
   mix-blend-mode: screen;
   opacity: 0.35;
+  will-change: transform;
+  backface-visibility: hidden;
+  transform: translateZ(0);
 }
 .shimmer-a {
   background: repeating-linear-gradient(
@@ -178,6 +177,9 @@ button { font-family: inherit; }
     rgba(156, 195, 237, 0) 55%);
   animation: swellBreathe 28s ease-in-out infinite;
   mix-blend-mode: screen;
+  will-change: transform;
+  backface-visibility: hidden;
+  transform: translateZ(0);
 }
 @keyframes swellBreathe {
   0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.6; }
@@ -190,11 +192,28 @@ button { font-family: inherit; }
   opacity: 0.13;
   pointer-events: none;
   mix-blend-mode: overlay;
-  animation: noiseDrift 40s ease-in-out infinite;
+  /* noise is static — animating its transform forces SVG filter re-paint and is jank */
 }
-@keyframes noiseDrift {
-  0%, 100% { transform: translate(0, 0); }
-  50%      { transform: translate(-8px, 6px); }
+
+/* ---------- Waterline ---------- */
+.waterline {
+  position: absolute;
+  top: 20vh;
+  left: 0; right: 0;
+  height: 3px;
+  z-index: 4;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.7) 20%,
+    rgba(255, 255, 255, 0.9) 50%,
+    rgba(255, 255, 255, 0.7) 80%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  box-shadow:
+    0 1px 0 rgba(4, 44, 83, 0.15),
+    0 2px 8px rgba(255, 255, 255, 0.4);
 }
 
 /* ---------- Waves ---------- */
@@ -202,9 +221,9 @@ button { font-family: inherit; }
   position: absolute;
   top: 20vh;
   left: 0; right: 0;
-  height: 22px;
-  transform: translateY(-12px);
-  z-index: 4;
+  height: 56px;
+  transform: translateY(-28px);
+  z-index: 7; /* in front of the rays (5) and the waterline (4) */
   pointer-events: none;
   overflow: hidden;
 }
@@ -213,34 +232,33 @@ button { font-family: inherit; }
   left: -50%;
   width: 200%;
   height: 100%;
+  will-change: transform;
+  backface-visibility: hidden;
+  transform: translateZ(0);
 }
-.wave-top { animation: waveDrift 14s linear infinite, waveBreathe 9s ease-in-out infinite; }
-.wave-under { animation: waveDriftRev 20s linear infinite, waveBreathe 11s ease-in-out infinite -2s; opacity: 0.55; }
+.wave-top   { animation: waveDrift    22s linear infinite; }
+.wave-under { animation: waveDriftRev 30s linear infinite; opacity: 0.55; }
 
 @keyframes waveDrift {
-  from { transform: translateX(0); }
-  to   { transform: translateX(25%); }
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(25%, 0, 0); }
 }
 @keyframes waveDriftRev {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-25%); }
-}
-@keyframes waveBreathe {
-  0%, 100% { margin-top: 0; }
-  50%      { margin-top: 3px; }
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-25%, 0, 0); }
 }
 
 /* ---------- God rays ---------- */
 .rays {
   position: absolute;
-  top: 0; left: -8%;
+  top: 20vh; left: -8%;
   width: 116%;
-  height: 100%;
+  height: calc(100% - 20vh);
   pointer-events: none;
   mix-blend-mode: screen;
-  filter: blur(2.5px);
   z-index: 5;
-  overflow: visible;
+  overflow: hidden;
+  will-change: transform;
 }
 
 /* Each ray's pulse + sway timing is set inline per element so every ray
@@ -295,17 +313,11 @@ button { font-family: inherit; }
 .seabed {
   position: absolute;
   left: 0; right: 0; bottom: 0;
-  height: 4vh;
+  height: 8vh;
   pointer-events: none;
   z-index: 3;
 }
 .seabed svg { width: 100%; height: 100%; display: block; }
-.pebble {
-  position: absolute;
-  bottom: 0.6vh;
-  border-radius: 40%;
-  background: #021225;
-}
 
 /* ---------- Tasks ---------- */
 .tasks {
@@ -321,8 +333,6 @@ button { font-family: inherit; }
   border-radius: 10px;
   color: var(--ink);
   border: 0.5px solid rgba(4, 44, 83, 0.12);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
   pointer-events: auto;
   transition: top 700ms cubic-bezier(0.22, 1, 0.36, 1),
               left 700ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -360,6 +370,24 @@ button { font-family: inherit; }
   border-color: rgba(239, 159, 39, 0.6);
 }
 .task.sinking-soon .task-meta { color: #BA7517; }
+
+/* "Release to complete" affordance — card is above the waterline during drag */
+.task.above-waterline {
+  box-shadow:
+    0 0 0 1.5px rgba(255, 232, 170, 0.85),
+    0 0 24px rgba(255, 232, 170, 0.55) !important;
+}
+
+.task.floating-away {
+  animation: cardFloatAway 1600ms cubic-bezier(0.25, 0.6, 0.3, 1) forwards;
+  pointer-events: none;
+}
+@keyframes cardFloatAway {
+  0%   { transform: translateY(0) scale(1); opacity: 1; }
+  50%  { transform: translateY(-70px) scale(0.98); opacity: 1; }
+  80%  { transform: translateY(-150px) scale(0.92); opacity: 0.7; }
+  100% { transform: translateY(-220px) scale(0.84); opacity: 0; }
+}
 
 .task.deep {
   color: rgba(255, 248, 220, 0.88);
@@ -487,10 +515,13 @@ button { font-family: inherit; }
   50%      { transform: translateY(-3px); }
 }
 .task.editing {
-  width: 240px !important;
   padding: 13px 16px;
   border-radius: 12px;
 }
+
+/* Float-away must win over in-sky/dropping animations */
+.task.floating-away.in-sky,
+.task.floating-away { animation: cardFloatAway 1600ms cubic-bezier(0.25, 0.6, 0.3, 1) forwards !important; }
 .task .drop-hint {
   color: var(--ink-soft);
   margin-top: 6px;
@@ -562,6 +593,25 @@ button { font-family: inherit; }
 .depth-indicator.deep .depth-dot { border-color: rgba(255,255,255,0.6); }
 .depth-indicator.deep .depth-dot.active { background: #fff; border-color: #fff; }
 
+.splash-tuner {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(4px);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--ink);
+  z-index: 50;
+  box-shadow: 0 2px 10px rgba(4, 44, 83, 0.15);
+}
+.splash-tuner label { display: flex; align-items: center; gap: 10px; }
+.splash-tuner label.toggle-row { margin-top: 6px; gap: 6px; }
+.splash-tuner input[type="range"] { width: 160px; accent-color: var(--ink); }
+.splash-tuner input[type="checkbox"] { accent-color: var(--ink); }
+
 .hint {
   position: fixed;
   bottom: 18px;
@@ -592,5 +642,5 @@ button { font-family: inherit; }
 
 @media (prefers-reduced-motion: reduce) {
   .task, .particle, .wave, .ray, .cloud, .sun,
-  .shimmer, .swell, .noise, .water::before { animation: none !important; }
+  .shimmer, .swell { animation: none !important; }
 }
