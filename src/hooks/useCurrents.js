@@ -1,14 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { loadState, saveState } from "../lib/state.js";
 import { hash01, uid } from "../lib/util.js";
-import { SKY_COMPOSE_VH, WATERLINE_VH } from "../lib/geometry.js";
+import {
+  SKY_COMPOSE_VH,
+  WATERLINE_VH,
+  WATER_TOP_VH,
+  WATER_RANGE_VH,
+} from "../lib/geometry.js";
 
 // Animation timings (tune here, in one place).
 const DROP_CLEAR_MS = 1350;
 const ASCENT_TOTAL_MS = 2500;
-const ASCENT_SPLASH_MS = 1500;
 const FLOAT_AWAY_MS = 1600;
 const SPLASH_LIFETIME_MS = 1100;
+
+// Approximate card width calc — matches layout.js so the splash is sized right.
+function cardWidthForDepth(id, depth) {
+  const hw = hash01(id, 2);
+  return Math.round((150 + hw * 50) * (1 - depth * 0.22));
+}
 
 // The core state hook: tasks, editing flow, and all completion / drop / float
 // animations. Returns everything the UI needs and a set of pure-ish actions.
@@ -39,9 +49,9 @@ export function useCurrents() {
 
   // --- Private helpers --------------------------------------------------
 
-  const spawnSplash = useCallback((leftPct) => {
+  const spawnSplash = useCallback((leftPct, widthPx = 160) => {
     const id = uid();
-    setSplashes((prev) => [...prev, { id, leftPct }]);
+    setSplashes((prev) => [...prev, { id, leftPct, widthPx }]);
     setTimeout(() => {
       setSplashes((prev) => prev.filter((s) => s.id !== id));
     }, SPLASH_LIFETIME_MS);
@@ -114,7 +124,13 @@ export function useCurrents() {
       // Trigger drop animation (keyframes read --drop-from / --splash-y).
       setDropping((prev) => new Map(prev).set(id, distanceVh));
 
-      setTimeout(() => spawnSplash(landingX), splashDelayRef.current);
+      // Match the splash size to the landed card's width.
+      const landingDepth = Math.max(
+        0,
+        Math.min(1, (26 + hash01(id, 8) * 6 - WATER_TOP_VH) / WATER_RANGE_VH)
+      );
+      const splashW = cardWidthForDepth(id, landingDepth);
+      setTimeout(() => spawnSplash(landingX, splashW), splashDelayRef.current);
       setTimeout(() => {
         setDropping((prev) => {
           const n = new Map(prev);
@@ -156,14 +172,25 @@ export function useCurrents() {
         return new Set(prev).add(id);
       });
 
-      setTimeout(() => {
-        // Splash at the card's column as it breaks the surface.
-        setTasks((prev) => {
-          const t = prev.find((x) => x.id === id);
-          if (t) spawnSplash(t.manual_x ?? 50);
-          return prev;
-        });
-      }, ASCENT_SPLASH_MS);
+      // Watch the card's real position; fire the splash the moment its top
+      // edge crosses the waterline. This is exact — no timing guess tied to
+      // how deep the card was when we started.
+      let splashFired = false;
+      function watch() {
+        if (splashFired) return;
+        const el = document.querySelector(`[data-task-id="${id}"]`);
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        const waterlinePx = (WATERLINE_VH / 100) * window.innerHeight;
+        if (rect.top <= waterlinePx) {
+          splashFired = true;
+          const xPct = ((rect.left + rect.width / 2) / window.innerWidth) * 100;
+          spawnSplash(xPct, rect.width);
+          return;
+        }
+        requestAnimationFrame(watch);
+      }
+      requestAnimationFrame(watch);
 
       setTimeout(() => {
         setTasks((prev) => prev.filter((t) => t.id !== id));

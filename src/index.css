@@ -216,14 +216,18 @@ button { font-family: inherit; }
     0 2px 8px rgba(255, 255, 255, 0.4);
 }
 
-/* ---------- Waves ---------- */
+/* ---------- Waves (calm crest lines) ----------
+   Animation shifts by 50% of the wave's own (200%-wide) element. With a 300-unit
+   pattern period over a 1200-unit viewBox, that is exactly two full cycles, so
+   the loop seams cleanly. Small amplitude, long duration — "interesting but not
+   eventful". */
 .waves {
   position: absolute;
   top: 20vh;
   left: 0; right: 0;
-  height: 56px;
-  transform: translateY(-28px);
-  z-index: 7; /* in front of the rays (5) and the waterline (4) */
+  height: 18px;
+  transform: translateY(-9px);
+  z-index: 6; /* above the rays (5), below the tasks (7) */
   pointer-events: none;
   overflow: hidden;
 }
@@ -236,16 +240,16 @@ button { font-family: inherit; }
   backface-visibility: hidden;
   transform: translateZ(0);
 }
-.wave-top   { animation: waveDrift    22s linear infinite; }
-.wave-under { animation: waveDriftRev 30s linear infinite; opacity: 0.55; }
+.wave-top   { animation: waveDrift    36s linear infinite; opacity: 0.9; }
+.wave-under { animation: waveDriftRev 48s linear infinite; opacity: 0.6; }
 
 @keyframes waveDrift {
   from { transform: translate3d(0, 0, 0); }
-  to   { transform: translate3d(25%, 0, 0); }
+  to   { transform: translate3d(50%, 0, 0); }
 }
 @keyframes waveDriftRev {
   from { transform: translate3d(0, 0, 0); }
-  to   { transform: translate3d(-25%, 0, 0); }
+  to   { transform: translate3d(-50%, 0, 0); }
 }
 
 /* ---------- God rays ---------- */
@@ -319,11 +323,35 @@ button { font-family: inherit; }
 }
 .seabed svg { width: 100%; height: 100%; display: block; }
 
+/* ---------- Grid overlay (organise mode) ---------- */
+.grid-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  z-index: 6;
+  opacity: 0.25;
+}
+.grid-line {
+  position: absolute;
+  background: rgba(255, 248, 220, 0.45);
+}
+.grid-col {
+  top: 0;
+  bottom: 0;
+  width: 1px;
+}
+.grid-row {
+  left: 0;
+  right: 0;
+  height: 1px;
+}
+
 /* ---------- Tasks ---------- */
 .tasks {
   position: absolute;
   inset: 0;
-  z-index: 6;
+  z-index: 7; /* above waves (6) and rays (5) */
   pointer-events: none;
 }
 
@@ -442,7 +470,7 @@ button { font-family: inherit; }
   position: absolute;
   width: 0; height: 0;
   pointer-events: none;
-  z-index: 7;
+  z-index: 8;
 }
 .splash-ring {
   position: absolute;
@@ -450,7 +478,9 @@ button { font-family: inherit; }
   border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.9);
   transform: translate(-50%, -50%);
-  width: 20px; height: 20px;
+  /* Ring grows to the full width of the card that caused the splash. */
+  width: var(--splash-w, 160px);
+  height: var(--splash-w, 160px);
   opacity: 0;
 }
 .splash-ring.ring-1 { animation: splashRing 1000ms ease-out forwards; }
@@ -460,9 +490,9 @@ button { font-family: inherit; }
   animation: splashRing 1100ms ease-out 80ms forwards;
 }
 @keyframes splashRing {
-  0%   { opacity: 0.9; transform: translate(-50%, -50%) scale(0.3); }
-  40%  { opacity: 0.7; transform: translate(-50%, -50%) scale(1.2); }
-  100% { opacity: 0; transform: translate(-50%, -50%) scale(3.5); }
+  0%   { opacity: 0.9; transform: translate(-50%, -50%) scale(0.15); }
+  40%  { opacity: 0.7; transform: translate(-50%, -50%) scale(0.55); }
+  100% { opacity: 0;   transform: translate(-50%, -50%) scale(1.05); }
 }
 
 .splash-drop {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { DepthIndicator } from "./components/DepthIndicator.jsx";
 import { DevTools } from "./components/DevTools.jsx";
@@ -7,7 +7,9 @@ import { TaskCard } from "./components/TaskCard.jsx";
 import { useClock } from "./hooks/useClock.js";
 import { useCurrents } from "./hooks/useCurrents.js";
 import { useScrollZone } from "./hooks/useScrollZone.js";
+import { snapToGrid } from "./lib/grid.js";
 import { layoutTasks } from "./lib/layout.js";
+import { GridOverlay } from "./scene/GridOverlay.jsx";
 import { Scene } from "./scene/Scene.jsx";
 
 export default function App() {
@@ -33,7 +35,21 @@ export default function App() {
 
   const [splashDelay, setSplashDelay] = useState(500);
   const [dragCompleteEnabled, setDragCompleteEnabled] = useState(true);
+  const [gridEnabled, setGridEnabled] = useState(false);
   const focusedRef = useRef(null); // id of the card the cursor is currently over
+
+  // Reposition with optional grid snapping.
+  const handleReposition = useCallback(
+    (id, leftPct, topVh) => {
+      if (gridEnabled) {
+        const snapped = snapToGrid(leftPct, topVh);
+        reposition(id, snapped.leftPct, snapped.topVh);
+      } else {
+        reposition(id, leftPct, topVh);
+      }
+    },
+    [gridEnabled, reposition]
+  );
 
   // Propagate slider tweaks to the hook's internal ref.
   useEffect(() => {
@@ -98,6 +114,7 @@ export default function App() {
   return (
     <div className="scene">
       <Scene onSkyClick={handleSkyClick} />
+      {gridEnabled && <GridOverlay />}
 
       <div className="tasks">
         {laidOut.map(({ task, depth, leftPct, widthPx, topVh, deep, inSky }) => (
@@ -121,12 +138,12 @@ export default function App() {
             onComplete={completeTask}
             onCommitEdit={commitEdit}
             onDiscardEdit={discardEdit}
-            onReposition={reposition}
+            onReposition={handleReposition}
             onFloatAway={floatAway}
           />
         ))}
         {splashes.map((s) => (
-          <Splash key={s.id} leftPct={s.leftPct} />
+          <Splash key={s.id} leftPct={s.leftPct} widthPx={s.widthPx} />
         ))}
       </div>
 
@@ -157,6 +174,8 @@ export default function App() {
         onSplashDelayChange={setSplashDelay}
         dragCompleteEnabled={dragCompleteEnabled}
         onDragCompleteChange={setDragCompleteEnabled}
+        gridEnabled={gridEnabled}
+        onGridChange={setGridEnabled}
       />
     </div>
   );

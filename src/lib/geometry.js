@@ -7,3 +7,7 @@ export const FLOOR_MAX_VH = 295;             // Last usable row before the seabe
 export const WATER_RANGE_VH = FLOOR_MAX_VH - WATER_TOP_VH;
 
 export const SKY_COMPOSE_VH = 7;             // Where a composing card hovers in the sky.
+export const CARD_H_VH = 10;                 // Approximate card height, used for collision
+                                             // and splash-on-contact geometry. Kept slightly
+                                             // generous so overlap detection doesn't miss
+                                             // cards whose content pushes them taller.

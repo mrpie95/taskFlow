@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { DAY_MS, idleLabel } from "../lib/util.js";
-import { FLOOR_MAX_VH, WATERLINE_VH } from "../lib/geometry.js";
+import { CARD_H_VH, FLOOR_MAX_VH, WATERLINE_VH } from "../lib/geometry.js";
 import { useCardDrag } from "../hooks/useCardDrag.js";
 
 // A single positioned card. All motion state flags are booleans driven by the
@@ -93,8 +93,10 @@ export function TaskCard({
     style["--ascent-d"] = `${-(topVh * window.innerHeight) / 100 + 20}px`;
   }
   if (isDropping) {
+    // At the splash keyframe the card's BOTTOM edge should touch the waterline.
+    // top-at-splash = waterline - cardHeight, so translateY = that - landingY.
     style["--drop-from"] = `${dropFromVh}vh`;
-    style["--splash-y"] = `${WATERLINE_VH - task.manual_y}vh`;
+    style["--splash-y"] = `${WATERLINE_VH - CARD_H_VH - task.manual_y}vh`;
   }
 
   const inputRef = useRef(null);

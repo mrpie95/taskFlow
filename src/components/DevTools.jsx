@@ -4,6 +4,8 @@ export function DevTools({
   onSplashDelayChange,
   dragCompleteEnabled,
   onDragCompleteChange,
+  gridEnabled,
+  onGridChange,
 }) {
   return (
     <div className="splash-tuner" aria-hidden="true">
@@ -25,6 +27,14 @@ export function DevTools({
           onChange={(e) => onDragCompleteChange(e.target.checked)}
         />
         drag-above-water completes
+      </label>
+      <label className="toggle-row">
+        <input
+          type="checkbox"
+          checked={gridEnabled}
+          onChange={(e) => onGridChange(e.target.checked)}
+        />
+        organise mode (snap to grid)
       </label>
     </div>
   );
