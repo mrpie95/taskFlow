@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Task Currents – Pretty Mock</title>
+
+<style>
+  :root{
+    /* Typography + layout */
+    --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    --max: 980px;
+
+    /* “Happy product” palette (cohesive) */
+    --ink: #0B1220;
+    --muted: rgba(11,18,32,.62);
+
+    --sky-1: #EAF8FF;
+    --sky-2: #FFF6E9;
+
+    --water-1: #CFF4FF;
+    --water-2: #B9ECFF;
+
+    --mid-1: #A6E1FF;
+    --mid-2: #7FD0FF;
+
+    --deep-1: #59BBFF;
+    --deep-2: #2F93FF;
+
+    --card: rgba(255,255,255,.74);
+    --glass: rgba(255,255,255,.58);
+    --stroke: rgba(11,18,32,.10);
+    --stroke2: rgba(11,18,32,.16);
+
+    --shadow: 0 16px 40px rgba(10,18,40,.10);
+    --shadow2: 0 10px 26px rgba(10,18,40,.10);
+
+    --mint: #2DD4BF;
+    --sun:  #FBBF24;
+    --berry:#7C3AED;
+    --blue: #2563EB;
+
+    --r-xl: 28px;
+    --r: 18px;
+    --r-sm: 14px;
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0;
+    font-family: var(--font);
+    color: var(--ink);
+    background: #F7FAFF;
+    overflow-x:hidden;
+  }
+
+  /* Subtle grain to make it feel “designed” */
+  body::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    opacity:.06;
+    background-image:
+      radial-gradient(#000 1px, transparent 1px);
+    background-size: 14px 14px;
+    mix-blend-mode: multiply;
+  }
+
+  .wrap{
+    width: 100%;
+  }
+
+  /* ===== AIR ===== */
+  .air{
+    min-height: 66vh;
+    padding: 26px 18px 18px;
+    background:
+      radial-gradient(900px 420px at 25% 12%, rgba(251,191,36,.35), transparent 60%),
+      radial-gradient(900px 420px at 80% 18%, rgba(45,212,191,.25), transparent 60%),
+      radial-gradient(900px 420px at 55% 55%, rgba(37,99,235,.14), transparent 60%),
+      linear-gradient(180deg, var(--sky-1), var(--sky-2));
+    position:relative;
+  }
+
+  .topbar{
+    max-width: var(--max);
+    margin: 0 auto;
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:16px;
+  }
+
+  .brand{
+    display:grid;
+    gap:8px;
+    min-width:0;
+  }
+  .brand h1{
+    margin:0;
+    font-size: 26px;
+    letter-spacing: -0.4px;
+    font-weight: 950;
+    line-height: 1.05;
+  }
+  .brand p{
+    margin:0;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.35;
+    max-width: 68ch;
+  }
+
+  .ctaRow{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+  }
+
+  .pill{
+    border:1px solid var(--stroke);
+    background: rgba(255,255,255,.68);
+    backdrop-filter: blur(10px);
+    border-radius: 999px;
+    padding: 10px 12px;
+    font-weight: 800;
+    color: rgba(11,18,32,.74);
+    box-shadow: var(--shadow2);
+    white-space:nowrap;
+    font-size: 13px;
+  }
+
+  .btn{
+    border: 1px solid var(--stroke2);
+    background: rgba(255,255,255,.80);
+    backdrop-filter: blur(10px);
+    border-radius: 14px;
+    padding: 11px 12px;
+    font-weight: 900;
+    cursor:pointer;
+    box-shadow: var(--shadow2);
+    color: rgba(11,18,32,.86);
+  }
+  .btn:hover{ transform: translateY(-1px); }
+  .btn:active{ transform: translateY(0px); }
+
+  /* Active clouds container */
+  .cloudDeck{
+    max-width: var(--max);
+    margin: 18px auto 0;
+    padding: 16px;
+    border-radius: var(--r-xl);
+    background: rgba(255,255,255,.50);
+    border: 1px solid var(--stroke);
+    backdrop-filter: blur(12px);
+    box-shadow: var(--shadow);
+  }
+
+  .cloudDeckHead{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    margin-bottom: 12px;
+  }
+  .cloudDeckHead .label{
+    font-weight: 950;
+    letter-spacing: -0.2px;
+  }
+  .cloudDeckHead .sub{
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .clouds{
+    display:flex;
+    gap:10px;
+    overflow-x:auto;
+    padding: 6px 2px 2px;
+    scroll-snap-type: x mandatory;
+  }
+  .clouds::-webkit-scrollbar{ height:10px; }
+  .clouds::-webkit-scrollbar-thumb{
+    background: rgba(11,18,32,.12);
+    border-radius: 999px;
+  }
+
+  .cloud{
+    flex: 0 0 320px;
+    scroll-snap-align: start;
+    border-radius: 999px;
+    padding: 12px 14px;
+    background:
+      radial-gradient(120px 70px at 28% 38%, rgba(255,255,255,.96), transparent 70%),
+      linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.68));
+    border: 1px solid rgba(11,18,32,.10);
+    box-shadow: 0 14px 34px rgba(10,18,40,.12);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+  }
+  .cloud strong{
+    display:block;
+    font-size: 13.5px;
+    font-weight: 950;
+    letter-spacing: -0.1px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    max-width: 210px;
+  }
+  .cloud .time{
+    font-variant-numeric: tabular-nums;
+    color: rgba(11,18,32,.62);
+    font-weight: 900;
+    font-size: 12.5px;
+    margin-top: 4px;
+  }
+  .cloud .stop{
+    border:none;
+    border-radius: 999px;
+    padding: 10px 12px;
+    font-weight: 950;
+    cursor:pointer;
+    background: linear-gradient(180deg, rgba(251,191,36,.98), rgba(245,158,11,.98));
+    box-shadow: 0 12px 22px rgba(251,191,36,.25);
+    color: rgba(11,18,32,.88);
+  }
+
+  /* Wave waterline */
+  .waterline{
+    height: 70px;
+    background: linear-gradient(180deg, transparent, var(--water-1));
+    position: relative;
+  }
+  .waterline svg{
+    position:absolute;
+    left:0; right:0; bottom:-1px;
+    width: 100%;
+    height: 80px;
+    display:block;
+  }
+
+  /* ===== ZONES (scroll down into water) ===== */
+  .zone{
+    padding: 26px 18px 30px;
+  }
+  .zoneInner{
+    max-width: var(--max);
+    margin: 0 auto;
+  }
+
+  .surface{ background: linear-gradient(180deg, var(--water-1), var(--water-2)); }
+  .mid{     background: linear-gradient(180deg, var(--mid-1),   var(--mid-2)); }
+  .deep{    background: linear-gradient(180deg, var(--deep-1),  var(--deep-2)); }
+
+  .zoneHead{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:16px;
+    margin-bottom: 14px;
+  }
+  .zoneHead h2{
+    margin:0;
+    font-size: 16px;
+    font-weight: 950;
+    letter-spacing: -0.2px;
+  }
+  .zoneHead p{
+    margin: 6px 0 0;
+    color: rgba(11,18,32,.70);
+    font-size: 14px;
+    font-weight: 650;
+    line-height: 1.35;
+    max-width: 70ch;
+  }
+
+  .stack{
+    display:grid;
+    gap:12px;
+  }
+
+  .task{
+    border: 1px solid rgba(11,18,32,.10);
+    background: var(--card);
+    border-radius: var(--r);
+    padding: 14px;
+    box-shadow: var(--shadow2);
+    backdrop-filter: blur(12px);
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:12px;
+  }
+  .task:hover{
+    border-color: rgba(11,18,32,.16);
+    transform: translateY(-1px);
+  }
+
+  .task .title{
+    margin:0;
+    font-size: 14.5px;
+    font-weight: 950;
+    letter-spacing: -0.15px;
+  }
+  .task .desc{
+    margin: 6px 0 0;
+    color: rgba(11,18,32,.66);
+    font-size: 13.5px;
+    font-weight: 650;
+    line-height: 1.35;
+  }
+
+  .tags{
+    margin-top: 10px;
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  .tag{
+    font-size: 12px;
+    font-weight: 850;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(11,18,32,.10);
+    background: rgba(255,255,255,.62);
+    color: rgba(11,18,32,.78);
+  }
+  .tag.sun{  background: rgba(251,191,36,.30); border-color: rgba(251,191,36,.42); }
+  .tag.mint{ background: rgba(45,212,191,.24); border-color: rgba(45,212,191,.38); }
+  .tag.berry{background: rgba(124,58,237,.16); border-color: rgba(124,58,237,.26); }
+
+  .actions{
+    display:flex;
+    gap:10px;
+    flex: 0 0 auto;
+    align-items:center;
+  }
+
+  .act{
+    border:none;
+    border-radius: 14px;
+    padding: 11px 12px;
+    font-weight: 950;
+    cursor:pointer;
+    color: rgba(11,18,32,.90);
+    box-shadow: 0 10px 18px rgba(10,18,40,.10);
+  }
+  .act.start{
+    background: linear-gradient(180deg, rgba(45,212,191,.98), rgba(16,185,129,.98));
+    color: rgba(11,18,32,.88);
+  }
+  .act.done{
+    background: rgba(255,255,255,.86);
+    border: 1px solid rgba(11,18,32,.12);
+    box-shadow: none;
+    color: rgba(11,18,32,.78);
+  }
+  .act.promote{
+    background: rgba(255,255,255,.60);
+    border: 1px solid rgba(11,18,32,.12);
+    box-shadow: none;
+    color: rgba(11,18,32,.78);
+  }
+
+  /* Tiny “nice” micro-animation for clouds appearing */
+  @keyframes pop {
+    0% { transform: translateY(10px) scale(.98); opacity:0; }
+    100% { transform: translateY(0) scale(1); opacity:1; }
+  }
+  .cloud.pop{ animation: pop 240ms ease-out; }
+
+  /* Mobile */
+  @media (max-width: 520px){
+    .brand h1{ font-size: 22px; }
+    .cloud{ flex-basis: 86vw; }
+    .task{ flex-direction:column; }
+    .actions{ width:100%; justify-content:flex-end; }
+  }
+</style>
+</head>
+
+<body>
+<div class="wrap">
+
+  <!-- AIR -->
+  <section class="air">
+    <div class="topbar">
+      <div class="brand">
+        <h1>Task Currents</h1>
+        <p>Start something and it rises into the air as a cloud with a timer. Scroll down to “deeper” tasks.</p>
+      </div>
+
+      <div class="ctaRow">
+        <div class="pill">✨ Small wins → momentum</div>
+        <button class="btn">+ New</button>
+      </div>
+    </div>
+
+    <div class="cloudDeck">
+      <div class="cloudDeckHead">
+        <div class="label">In the Air (active)</div>
+        <div class="sub">Start a task below → it appears here</div>
+      </div>
+      <div class="clouds" id="clouds"></div>
+    </div>
+  </section>
+
+  <!-- WATERLINE -->
+  <div class="waterline" aria-hidden="true">
+    <svg viewBox="0 0 1440 120" preserveAspectRatio="none">
+      <path d="M0,64 C240,112 480,20 720,64 C960,108 1200,20 1440,64 L1440,120 L0,120 Z"
+            fill="rgba(255,255,255,.55)"></path>
+      <path d="M0,76 C240,124 480,32 720,76 C960,120 1200,32 1440,76 L1440,120 L0,120 Z"
+            fill="rgba(207,244,255,1)"></path>
+    </svg>
+  </div>
+
+  <!-- SURFACE -->
+  <section class="zone surface" id="surface">
+    <div class="zoneInner">
+      <div class="zoneHead">
+        <div>
+          <h2>Just Below the Surface</h2>
+          <p>Immediate tasks you want to do soon. Starting one sends it up into the air.</p>
+        </div>
+      </div>
+
+      <div class="stack">
+        <div class="task" data-task="Send supplier update">
+          <div>
+            <p class="title">Send supplier update</p>
+            <p class="desc">Status + decisions. Keep it short.</p>
+            <div class="tags">
+              <span class="tag sun">#work</span>
+              <span class="tag mint">20m</span>
+              <span class="tag berry">today</span>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="act start">Start</button>
+            <button class="act done">Done</button>
+          </div>
+        </div>
+
+        <div class="task" data-task="Plan dinner + groceries">
+          <div>
+            <p class="title">Plan dinner + groceries</p>
+            <p class="desc">Minimal decisions. Make it easy.</p>
+            <div class="tags">
+              <span class="tag sun">#home</span>
+              <span class="tag mint">20m</span>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="act start">Start</button>
+            <button class="act done">Done</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MID -->
+  <section class="zone mid" id="mid">
+    <div class="zoneInner">
+      <div class="zoneHead">
+        <div>
+          <h2>Mid Water</h2>
+          <p>Next items to populate the surface. Promote one when you’ve got room.</p>
+        </div>
+      </div>
+
+      <div class="stack">
+        <div class="task" data-task="Draft app data model">
+          <div>
+            <p class="title">Draft app data model</p>
+            <p class="desc">Tasks, zones, events, promotions.</p>
+            <div class="tags">
+              <span class="tag sun">#build</span>
+              <span class="tag mint">1–2h</span>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="act promote">Promote</button>
+          </div>
+        </div>
+
+        <div class="task" data-task="Define promotion rules">
+          <div>
+            <p class="title">Define promotion rules</p>
+            <p class="desc">What earns a move upward? What blocks it?</p>
+            <div class="tags">
+              <span class="tag sun">#design</span>
+              <span class="tag berry">thinking</span>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="act promote">Promote</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DEEP -->
+  <section class="zone deep" id="deep">
+    <div class="zoneInner">
+      <div class="zoneHead">
+        <div>
+          <h2>Ocean Floor</h2>
+          <p>Cold storage. Capture and forget. Promote only when you truly mean it.</p>
+        </div>
+      </div>
+
+      <div class="stack">
+        <div class="task" data-task="Ideas: analytics + streaks">
+          <div>
+            <p class="title">Ideas: analytics + streaks</p>
+            <p class="desc">Flow history, tides, patterns over time.</p>
+            <div class="tags">
+              <span class="tag berry">#future</span>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="act promote">Promote</button>
+          </div>
+        </div>
+
+        <div class="task" data-task="Research drag/drop UX">
+          <div>
+            <p class="title">Research drag/drop UX</p>
+            <p class="desc">Touch drag, keyboard support.</p>
+            <div class="tags">
+              <span class="tag berry">#future</span>
+              <span class="tag mint">optional</span>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="act promote">Promote</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  // Start -> create cloud with timer; Stop -> remove cloud
+  const cloudsEl = document.getElementById("clouds");
+  const active = new Map(); // name -> {id, start, el}
+
+  function fmt(ms){
+    const s = Math.floor(ms/1000);
+    const m = Math.floor(s/60);
+    const r = s%60;
+    return `${String(m).padStart(2,'0')}:${String(r).padStart(2,'0')}`;
+  }
+
+  function createCloud(name){
+    if(active.has(name)) return;
+
+    const el = document.createElement("div");
+    el.className = "cloud pop";
+    el.innerHTML = `
+      <div style="min-width:0">
+        <strong title="${name}">${name}</strong>
+        <div class="time">00:00</div>
+      </div>
+      <button class="stop">Stop</button>
+    `;
+
+    const timeEl = el.querySelector(".time");
+    const stopBtn = el.querySelector(".stop");
+    const start = Date.now();
+
+    const tick = () => timeEl.textContent = fmt(Date.now() - start);
+    tick();
+    const id = setInterval(tick, 1000);
+
+    stopBtn.addEventListener("click", () => {
+      clearInterval(id);
+      active.delete(name);
+      el.remove();
+    });
+
+    active.set(name, { id, start, el });
+    cloudsEl.prepend(el);
+
+    // remove animation class after it runs
+    setTimeout(() => el.classList.remove("pop"), 300);
+  }
+
+  document.addEventListener("click", (e) => {
+    const startBtn = e.target.closest(".act.start");
+    if(!startBtn) return;
+
+    const task = startBtn.closest(".task");
+    const name = task?.dataset?.task || "Task";
+    createCloud(name);
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "name": "Currents",
+  "short_name": "Currents",
+  "description": "A calm planner where tasks live underwater.",
+  "display": "standalone",
+  "background_color": "#042C53",
+  "theme_color": "#042C53",
+  "start_url": "/",
+  "icons": [
+    { "src": "/vite.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

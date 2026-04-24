@@ -1,0 +1,596 @@
+:root {
+  --water-surface: #E6F1FB;
+  --water-shallow: #9CBFE0;
+  --water-mid: #85B7EB;
+  --water-deep-mid: #5C99D7;
+  --water-lower-deep: #185FA5;
+  --water-floor-top: #0C447C;
+  --water-floor-bottom: #042C53;
+
+  --sky-1: #F8E8C6;
+  --sky-2: #F5EEDE;
+  --sky-3: #F2E8D1;
+
+  --sun-core: #FFF4D6;
+  --sun-mid: #FFE8A8;
+  --sun-edge: #FACA6E;
+
+  --ink: #042C53;
+  --ink-soft: #185FA5;
+  --cream: #FFF8DC;
+  --amber: #EF9F27;
+
+  --font: -apple-system, "Helvetica Neue", "Segoe UI", Roboto, sans-serif;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; padding: 0; }
+body {
+  font-family: var(--font);
+  color: var(--ink);
+  background: var(--water-floor-bottom);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+button { font-family: inherit; }
+
+/* ---------- Scene ---------- */
+.scene {
+  position: relative;
+  width: 100%;
+  min-height: 300vh;
+}
+
+.sky {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 20vh;
+  background: linear-gradient(180deg, var(--sky-1) 0%, var(--sky-2) 60%, var(--sky-3) 100%);
+  overflow: hidden;
+  z-index: 1;
+  cursor: crosshair;
+}
+
+.sun {
+  position: absolute;
+  top: 4vh;
+  right: 10vw;
+  width: 90px; height: 90px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%,
+    var(--sun-core) 0%,
+    var(--sun-mid) 40%,
+    var(--sun-edge) 100%);
+  animation: sunPulse 6s ease-in-out infinite;
+  z-index: 3;
+}
+.sun::after {
+  content: "";
+  position: absolute;
+  inset: -14px;
+  border-radius: 50%;
+  background: radial-gradient(circle at center, rgba(255,232,168,0.35) 0%, rgba(255,232,168,0) 70%);
+}
+@keyframes sunPulse {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50%     { opacity: 0.92; transform: scale(1.03); }
+}
+
+.cloud {
+  position: absolute;
+  height: 12px;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.7);
+  animation: cloudDrift 16s ease-in-out infinite;
+}
+@keyframes cloudDrift {
+  0%,100% { transform: translateX(0); }
+  50%     { transform: translateX(10px); }
+}
+
+.water {
+  position: absolute;
+  top: 20vh;
+  left: 0; right: 0;
+  height: calc(300vh - 20vh);
+  background: linear-gradient(180deg,
+    var(--water-surface) 0%,
+    var(--water-shallow) 10%,
+    var(--water-mid) 26%,
+    var(--water-deep-mid) 44%,
+    var(--water-lower-deep) 66%,
+    var(--water-floor-top) 84%,
+    var(--water-floor-bottom) 100%);
+  z-index: 1;
+  overflow: hidden;
+}
+
+.water::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 60%;
+  height: 30%;
+  background: radial-gradient(ellipse at 75% 0%,
+    rgba(255, 240, 200, 0.35) 0%,
+    rgba(255, 240, 200, 0.1) 40%,
+    transparent 70%);
+  pointer-events: none;
+  animation: sunHighlightBreathe 22s ease-in-out infinite;
+  transform-origin: 75% 0%;
+}
+@keyframes sunHighlightBreathe {
+  0%, 100% { transform: scale(1) translateX(0); opacity: 1; }
+  50%      { transform: scale(1.08) translateX(-2%); opacity: 0.78; }
+}
+
+/* Shimmer layer — two very slow drifting light bands */
+.shimmer {
+  position: absolute;
+  top: -10%; bottom: -10%;
+  left: -20%; right: -20%;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  opacity: 0.35;
+}
+.shimmer-a {
+  background: repeating-linear-gradient(
+    178deg,
+    transparent 0,
+    transparent 120px,
+    rgba(255, 248, 220, 0.07) 140px,
+    rgba(255, 248, 220, 0.14) 160px,
+    rgba(255, 248, 220, 0.07) 180px,
+    transparent 200px,
+    transparent 360px
+  );
+  animation: shimmerDrift 38s linear infinite;
+}
+.shimmer-b {
+  background: repeating-linear-gradient(
+    182deg,
+    transparent 0,
+    transparent 200px,
+    rgba(255, 232, 170, 0.05) 220px,
+    rgba(255, 232, 170, 0.12) 240px,
+    rgba(255, 232, 170, 0.05) 260px,
+    transparent 280px,
+    transparent 540px
+  );
+  animation: shimmerDrift 54s linear infinite reverse;
+}
+@keyframes shimmerDrift {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-12%, 6%, 0); }
+}
+
+/* Deep-water swell — a single band of very subtle color breathing */
+.swell {
+  position: absolute;
+  left: -25%; right: -25%;
+  top: 20%;
+  height: 70%;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 40% 50%,
+    rgba(156, 195, 237, 0.22) 0%,
+    rgba(156, 195, 237, 0) 55%);
+  animation: swellBreathe 28s ease-in-out infinite;
+  mix-blend-mode: screen;
+}
+@keyframes swellBreathe {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.6; }
+  50%      { transform: translate(6%, -2%) scale(1.1); opacity: 0.85; }
+}
+
+.noise {
+  position: absolute;
+  inset: 0;
+  opacity: 0.13;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  animation: noiseDrift 40s ease-in-out infinite;
+}
+@keyframes noiseDrift {
+  0%, 100% { transform: translate(0, 0); }
+  50%      { transform: translate(-8px, 6px); }
+}
+
+/* ---------- Waves ---------- */
+.waves {
+  position: absolute;
+  top: 20vh;
+  left: 0; right: 0;
+  height: 22px;
+  transform: translateY(-12px);
+  z-index: 4;
+  pointer-events: none;
+  overflow: hidden;
+}
+.wave {
+  position: absolute;
+  left: -50%;
+  width: 200%;
+  height: 100%;
+}
+.wave-top { animation: waveDrift 14s linear infinite, waveBreathe 9s ease-in-out infinite; }
+.wave-under { animation: waveDriftRev 20s linear infinite, waveBreathe 11s ease-in-out infinite -2s; opacity: 0.55; }
+
+@keyframes waveDrift {
+  from { transform: translateX(0); }
+  to   { transform: translateX(25%); }
+}
+@keyframes waveDriftRev {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-25%); }
+}
+@keyframes waveBreathe {
+  0%, 100% { margin-top: 0; }
+  50%      { margin-top: 3px; }
+}
+
+/* ---------- God rays ---------- */
+.rays {
+  position: absolute;
+  top: 0; left: -8%;
+  width: 116%;
+  height: 100%;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  filter: blur(2.5px);
+  z-index: 5;
+  overflow: visible;
+}
+
+/* Each ray's pulse + sway timing is set inline per element so every ray
+   has its own cycle — the scene never sits in sync. */
+.ray {
+  transform-origin: 80% 0%;
+  transform-box: fill-box;
+  will-change: transform, opacity;
+}
+
+@keyframes rayPulse {
+  0%, 100% { opacity: 0.8; }
+  50%      { opacity: 0.4; }
+}
+@keyframes raySway {
+  0%, 100% { transform: translateX(0) skewX(0deg); }
+  50%      { transform: translateX(1.2%) skewX(-0.4deg); }
+}
+
+/* ---------- Particles ---------- */
+.particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+}
+.particle {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.55);
+  border-radius: 50%;
+  will-change: transform;
+}
+
+@keyframes drift-a {
+  0%   { transform: translate(0, 0); }
+  50%  { transform: translate(12px, -8px); }
+  100% { transform: translate(0, 0); }
+}
+@keyframes drift-b {
+  0%   { transform: translate(0, 0); }
+  50%  { transform: translate(-14px, 6px); }
+  100% { transform: translate(0, 0); }
+}
+@keyframes drift-c {
+  0%   { transform: translate(0, 0); }
+  33%  { transform: translate(8px, 10px); }
+  66%  { transform: translate(-6px, -8px); }
+  100% { transform: translate(0, 0); }
+}
+
+/* ---------- Seabed (inside water) ---------- */
+.seabed {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 4vh;
+  pointer-events: none;
+  z-index: 3;
+}
+.seabed svg { width: 100%; height: 100%; display: block; }
+.pebble {
+  position: absolute;
+  bottom: 0.6vh;
+  border-radius: 40%;
+  background: #021225;
+}
+
+/* ---------- Tasks ---------- */
+.tasks {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+}
+
+.task {
+  position: absolute;
+  padding: 11px 14px;
+  border-radius: 10px;
+  color: var(--ink);
+  border: 0.5px solid rgba(4, 44, 83, 0.12);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  pointer-events: auto;
+  transition: top 700ms cubic-bezier(0.22, 1, 0.36, 1),
+              left 700ms cubic-bezier(0.22, 1, 0.36, 1),
+              background 300ms ease,
+              border-color 300ms ease,
+              box-shadow 300ms ease,
+              color 300ms ease;
+  animation: cardSway 6s ease-in-out infinite;
+}
+
+@keyframes cardSway {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-2px); }
+}
+
+.task-title {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0.01em;
+  word-break: break-word;
+  padding-right: 22px;
+}
+
+.task-meta {
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  text-transform: lowercase;
+  color: var(--ink-soft);
+  margin-top: 3px;
+}
+
+.task.sinking-soon {
+  border-color: rgba(239, 159, 39, 0.6);
+}
+.task.sinking-soon .task-meta { color: #BA7517; }
+
+.task.deep {
+  color: rgba(255, 248, 220, 0.88);
+  border-color: rgba(255, 248, 220, 0.22) !important;
+}
+.task.deep .task-meta { color: rgba(255, 248, 220, 0.55); }
+
+.task input.task-edit {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: inherit;
+  font: 500 13px/1.4 var(--font);
+  letter-spacing: 0.01em;
+}
+
+.task .check {
+  position: absolute;
+  top: 8px; right: 10px;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  border: 0.5px solid rgba(4, 44, 83, 0.35);
+  background: transparent;
+  color: var(--ink);
+  opacity: 0;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  transition: opacity 150ms ease, background 150ms ease;
+  padding: 0;
+}
+.task.deep .check { border-color: rgba(255, 255, 255, 0.4); color: #fff; }
+.task:hover .check, .task:focus-within .check { opacity: 1; }
+.task .check:hover { background: rgba(4, 44, 83, 0.08); }
+.task.deep .check:hover { background: rgba(255, 255, 255, 0.15); }
+
+.task.ascending {
+  animation: ascent 2500ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  pointer-events: none;
+}
+@keyframes ascent {
+  0%   { transform: translateY(0) scale(1); opacity: 1; }
+  60%  { transform: translateY(var(--ascent-d, -600px)) scale(1.05); opacity: 1; }
+  80%  { transform: translateY(calc(var(--ascent-d, -600px) - 60px)) scale(1); opacity: 0.9; }
+  100% { transform: translateY(calc(var(--ascent-d, -600px) - 120px)) scale(0.85); opacity: 0; }
+}
+
+/* ---------- Splash (on drop through waterline) ---------- */
+.splash-group {
+  position: absolute;
+  width: 0; height: 0;
+  pointer-events: none;
+  z-index: 7;
+}
+.splash-ring {
+  position: absolute;
+  left: 0; top: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  transform: translate(-50%, -50%);
+  width: 20px; height: 20px;
+  opacity: 0;
+}
+.splash-ring.ring-1 { animation: splashRing 1000ms ease-out forwards; }
+.splash-ring.ring-2 {
+  border-width: 1.5px;
+  border-color: rgba(255, 255, 255, 0.6);
+  animation: splashRing 1100ms ease-out 80ms forwards;
+}
+@keyframes splashRing {
+  0%   { opacity: 0.9; transform: translate(-50%, -50%) scale(0.3); }
+  40%  { opacity: 0.7; transform: translate(-50%, -50%) scale(1.2); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(3.5); }
+}
+
+.splash-drop {
+  position: absolute;
+  left: 0; top: 0;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  opacity: 0;
+  animation: splashDrop 900ms cubic-bezier(0.3, 0, 0.5, 1) forwards;
+}
+@keyframes splashDrop {
+  0%   { opacity: 0;   transform: translate(var(--dx), 0) scale(0.4); }
+  10%  { opacity: 1;   transform: translate(calc(var(--dx) * 0.4), calc(var(--dy1) * 0.5)) scale(1); }
+  45%  { opacity: 0.8; transform: translate(var(--dx), var(--dy1)) scale(0.8); }
+  80%  { opacity: 0.3; transform: translate(calc(var(--dx) * 1.1), 10px) scale(0.5); }
+  100% { opacity: 0;   transform: translate(calc(var(--dx) * 1.15), 18px) scale(0.4); }
+}
+
+/* ---------- Drop animation (sky -> water) ----------
+   Two phases: gravity in air (accelerate), then drag in water (decelerate).
+   Piecewise easing is set at each keyframe. */
+.task.dropping {
+  animation: cardDrop 1.25s forwards;
+  transition: none !important;
+}
+@keyframes cardDrop {
+  0% {
+    transform: translateY(var(--drop-from, -21vh));
+    animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.35);
+  }
+  40% {
+    /* At the waterline — gravity has accelerated the card through the air */
+    transform: translateY(var(--splash-y, -8vh));
+    animation-timing-function: cubic-bezier(0.05, 0.55, 0.25, 1);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+/* ---------- In-sky composing card ---------- */
+.task.in-sky {
+  animation: skyHover 4s ease-in-out infinite;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+@keyframes skyHover {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-3px); }
+}
+.task.editing {
+  width: 240px !important;
+  padding: 13px 16px;
+  border-radius: 12px;
+}
+.task .drop-hint {
+  color: var(--ink-soft);
+  margin-top: 6px;
+  opacity: 0.85;
+}
+.task input.task-edit::placeholder {
+  color: rgba(4, 44, 83, 0.35);
+}
+
+/* ---------- "Will sink soon" divider ---------- */
+.sink-divider {
+  position: absolute;
+  left: 8%; right: 8%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  color: rgba(250, 199, 117, 0.95);
+  text-transform: lowercase;
+  z-index: 5;
+  pointer-events: none;
+}
+.sink-divider .line {
+  flex: 1;
+  height: 0.5px;
+  background: rgba(250, 199, 117, 0.45);
+}
+
+/* ---------- UI chrome ---------- */
+.add-button {
+  position: fixed;
+  top: 23vh;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 0.5px solid rgba(4, 44, 83, 0.18);
+  color: var(--ink);
+  font-size: 20px;
+  font-weight: 300;
+  cursor: pointer;
+  z-index: 20;
+  transition: background 150ms ease, transform 150ms ease;
+  box-shadow: 0 4px 14px rgba(4, 44, 83, 0.12);
+}
+.add-button:hover { background: #FFF8DC; }
+
+.depth-indicator {
+  position: fixed;
+  right: 22px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 20;
+}
+.depth-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  border: 0.5px solid rgba(4, 44, 83, 0.5);
+  background: transparent;
+  transition: background 200ms ease, border-color 200ms ease;
+}
+.depth-dot.active { background: var(--ink); border-color: var(--ink); }
+/* invert in deep zones */
+.depth-indicator.deep .depth-dot { border-color: rgba(255,255,255,0.6); }
+.depth-indicator.deep .depth-dot.active { background: #fff; border-color: #fff; }
+
+.hint {
+  position: fixed;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: lowercase;
+  color: rgba(4, 44, 83, 0.55);
+  z-index: 20;
+  pointer-events: none;
+  transition: color 200ms ease;
+}
+.hint.deep { color: rgba(255, 255, 255, 0.55); }
+
+.empty-state {
+  position: fixed;
+  top: 32vh;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: rgba(4, 44, 83, 0.6);
+  text-align: center;
+  z-index: 15;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .task, .particle, .wave, .ray, .cloud, .sun,
+  .shimmer, .swell, .noise, .water::before { animation: none !important; }
+}
