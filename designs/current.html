@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Currents · current state</title>
+<style>
+  /* ====================================================================
+     DESIGN TOKENS — every value the live app uses, in one place.
+     Edit these first; everything below reads from them.
+     ==================================================================== */
+  :root {
+    /* Sky */
+    --sky-1: #F8E8C6;
+    --sky-2: #F5EEDE;
+    --sky-3: #FDE4D5;
+    --sun-mid: #FFE8A8;
+    --sun-edge: #FACA6E;
+
+    /* Water gradient stops (top → floor) */
+    --water-shallow: #9CBFE0;
+    --water-mid: #85B7EB;
+    --water-deep-mid: #5C99D7;
+    --water-lower-deep: #185FA5;
+    --water-floor-top: #0C447C;
+    --water-floor-mid: #041020;
+    --water-floor-deep: #020814;
+    --water-floor-bottom: #00040C;
+
+    /* Card colors */
+    --ink: #042C53;
+    --ink-soft: #185FA5;
+    --cream: #FFF8DC;
+    --cream-warm: #FFE8A8;
+    --amber: #EF9F27;
+
+    /* Type */
+    --font: -apple-system, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif;
+    --serif: Georgia, "Times New Roman", serif;
+
+    /* Card geometry */
+    --card-pad-y: 14px;
+    --card-pad-x: 20px;
+    --card-radius: 20px;
+    --card-blur: 4px;          /* current default — slider goes 0–12px */
+    --card-saturate: 140%;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font);
+    background: #EFEDE4;
+    color: #191919;
+    padding: 2rem;
+    line-height: 1.5;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  h1 { font-size: 24px; font-weight: 500; margin-bottom: 4px; letter-spacing: -0.01em; }
+  p.caption { color: #666; font-size: 13px; margin-bottom: 1.5rem; max-width: 640px; }
+  h2 {
+    font-size: 13px;
+    font-weight: 500;
+    color: #555;
+    margin: 2rem 0 0.5rem;
+    letter-spacing: 0.04em;
+    text-transform: lowercase;
+  }
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+    background: rgba(0,0,0,0.05);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  /* ====================================================================
+     SCENE — sky, water, waterline, sheen, rays. Mirrors what the live
+     scene paints at any given y.
+     ==================================================================== */
+  .scene {
+    position: relative;
+    height: 760px;
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 14px rgba(0,0,0,0.08);
+  }
+  .sky {
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 16%;
+    background: linear-gradient(180deg, var(--sky-1) 0%, var(--sky-2) 60%, var(--sky-3) 100%);
+  }
+  .water {
+    position: absolute; top: 16%; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(180deg,
+      var(--water-shallow) 0%,
+      var(--water-mid) 14%,
+      var(--water-deep-mid) 30%,
+      var(--water-lower-deep) 46%,
+      var(--water-floor-top) 58%,
+      var(--water-floor-mid) 72%,
+      var(--water-floor-deep) 86%,
+      var(--water-floor-bottom) 100%);
+  }
+  .waterline-sheen {
+    position: absolute; top: 16%; left: 0; right: 0;
+    height: 6%;
+    background: linear-gradient(to bottom,
+      rgba(255,255,255,0.42) 0%,
+      rgba(255,255,255,0.22) 22%,
+      rgba(255,255,255,0.08) 55%,
+      rgba(255,255,255,0) 100%);
+    mix-blend-mode: screen;
+    z-index: 2;
+  }
+  .waterline {
+    position: absolute; top: 16%; left: 0; right: 0;
+    height: 1.5px;
+    background: linear-gradient(90deg,
+      transparent 0%, rgba(255,255,255,0.85) 18%,
+      rgba(255,255,255,1) 50%, rgba(255,255,255,0.85) 82%, transparent 100%);
+    box-shadow: 0 1px 0 rgba(4,44,83,0.18), 0 0 10px rgba(255,255,255,0.55);
+    z-index: 3;
+  }
+  .rays {
+    position: absolute; top: 16%; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(105deg,
+      transparent 12%, rgba(255,244,214,0.18) 14%, transparent 22%,
+      transparent 38%, rgba(255,232,184,0.12) 40%, transparent 47%,
+      transparent 62%, rgba(255,244,214,0.08) 64%, transparent 72%);
+    pointer-events: none;
+    z-index: 1;
+  }
+  .sun {
+    position: absolute;
+    top: 4%; right: 9%;
+    width: 60px; height: 60px;
+    border-radius: 50%;
+    background: var(--sun-mid);
+    box-shadow: 0 0 50px rgba(255,232,168,0.7);
+    z-index: 2;
+  }
+  .sun::after {
+    content: "";
+    position: absolute;
+    top: 0; right: 0;
+    width: 50%; height: 100%;
+    background: var(--sun-edge);
+    border-radius: 0 30px 30px 0;
+  }
+  .island {
+    position: absolute;
+    bottom: calc(100% - 16% - 4px);
+    left: 8%;
+    width: 130px; height: 50px;
+    z-index: 2;
+    filter: blur(0.3px);
+    opacity: 0.85;
+  }
+  .island .hill-back {
+    position: absolute; left: 14px; bottom: 8px; width: 70px; height: 28px;
+    background: linear-gradient(180deg, #A8BD82 0%, #849865 100%);
+    border-radius: 50% 50% 0 0;
+  }
+  .island .hill-back-shadow {
+    position: absolute; left: 49px; bottom: 8px; width: 35px; height: 28px;
+    background: linear-gradient(180deg, #869763 0%, #627A4A 100%);
+    border-radius: 0 50% 0 0;
+  }
+  .island .hill-front {
+    position: absolute; left: 60px; bottom: 6px; width: 46px; height: 18px;
+    background: linear-gradient(180deg, #BCD094 0%, #94AC70 100%);
+    border-radius: 50% 50% 0 0;
+  }
+  .island .hill-front-shadow {
+    position: absolute; left: 83px; bottom: 6px; width: 23px; height: 18px;
+    background: linear-gradient(180deg, #94AD6F 0%, #738956 100%);
+    border-radius: 0 50% 0 0;
+  }
+  .island .sand {
+    position: absolute; left: 6px; bottom: 0; width: 106px; height: 10px;
+    background: linear-gradient(180deg, #F0DBB0 0%, #D8B98A 100%);
+    border-radius: 14px 6px 0 0;
+  }
+  .island .sand-shadow {
+    position: absolute; left: 59px; bottom: 0; width: 53px; height: 10px;
+    background: linear-gradient(180deg, #CFAC78 0%, #A8854C 100%);
+    border-radius: 0 6px 0 0;
+  }
+
+  /* ====================================================================
+     ZONE LABELS + DIVIDERS — the three-zone semantic model.
+     ==================================================================== */
+  .zone-divider {
+    position: absolute; left: 0; right: 0; height: 1px; pointer-events: none; z-index: 4;
+    background: linear-gradient(to right, transparent 0%, rgba(255,248,220,0.28) 22%, rgba(255,248,220,0.28) 78%, transparent 100%);
+  }
+  .zone-label {
+    position: absolute; right: 22px; pointer-events: none; z-index: 4;
+    font-size: 13px; font-weight: 500; letter-spacing: 0.18em; text-transform: lowercase;
+    color: rgba(4,44,83,0.55);
+    white-space: nowrap;
+  }
+  .zone-label.middle { color: rgba(255,248,220,0.7); }
+  .zone-label.floor  { color: rgba(255,248,220,0.6); }
+
+  /* ====================================================================
+     CARD — pane glass with corner-line resize indicator.
+     ==================================================================== */
+  .task {
+    position: absolute;
+    padding: var(--card-pad-y) var(--card-pad-x);
+    border-radius: var(--card-radius);
+    border: 0.5px solid rgba(255, 248, 220, 0.55);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.55),
+      inset 0 -0.5px 0 rgba(4,44,83,0.04),
+      0 6px 18px rgba(4,44,83,0.08);
+    backdrop-filter: blur(var(--card-blur)) saturate(var(--card-saturate));
+    -webkit-backdrop-filter: blur(var(--card-blur)) saturate(var(--card-saturate));
+    color: var(--ink);
+    background: rgba(255, 255, 255, 0.4);
+    width: 200px;
+  }
+
+  .task .title {
+    font-size: 16px; font-weight: 500; line-height: 1.35; letter-spacing: 0.005em;
+    padding-right: 30px;
+  }
+  .task .meta {
+    font-size: 12px; font-weight: 400; letter-spacing: 0.08em; text-transform: lowercase;
+    color: rgba(4, 44, 83, 0.6);
+    margin-top: 4px;
+  }
+  .task .check {
+    position: absolute;
+    top: 14px; right: 16px;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 1px solid currentColor;
+    background: transparent;
+    color: inherit;
+    opacity: 0.5;
+    cursor: pointer;
+    display: grid; place-items: center;
+    font-size: 12px;
+    padding: 0;
+    transition: opacity 150ms ease, background 150ms ease, transform 150ms ease;
+  }
+  .task:hover .check { opacity: 1; }
+  .task .check:hover { background: rgba(255, 255, 255, 0.25); transform: scale(1.08); }
+
+  /* The corner-line accent (right-side, lights up on hover, gold glow on
+     direct corner hover). */
+  .task::after {
+    content: "";
+    position: absolute;
+    top: 26%; bottom: 26%;
+    right: 4px;
+    width: 2px;
+    border-radius: 2px;
+    background: currentColor;
+    pointer-events: none;
+    opacity: 0.35;
+    transition: opacity 180ms ease, box-shadow 180ms ease, background 180ms ease;
+  }
+  .task:hover::after { opacity: 0.85; }
+  .task.corner-hover::after {
+    opacity: 1;
+    background: rgba(255, 232, 168, 1);
+    box-shadow: 0 0 8px rgba(255, 232, 168, 0.9);
+  }
+
+  /* Depth variants — applied via class for this static demo, computed
+     continuously in the live app. */
+  .task.middle {
+    background: rgba(255, 255, 255, 0.24);
+    border-color: rgba(255, 248, 220, 0.42);
+    color: var(--ink);
+  }
+  .task.floor {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 248, 220, 0.2);
+    color: var(--cream);
+  }
+  .task.floor .meta { color: rgba(255, 248, 220, 0.6); }
+  .task.sinking-soon { border-color: rgba(239, 159, 39, 0.6); }
+  .task.sinking-soon .meta { color: #BA7517; }
+  .task.editing { padding: 16px 22px; border-radius: 22px; }
+  .task.editing input {
+    width: 100%;
+    background: transparent; border: none; outline: none; color: inherit;
+    font: 500 16px/1.35 var(--font);
+  }
+  .task.editing .drop-hint {
+    font-size: 12px; letter-spacing: 0.08em; text-transform: lowercase;
+    color: rgba(4,44,83,0.55);
+    margin-top: 6px;
+  }
+
+  /* ====================================================================
+     LAYOUT — example placement
+     ==================================================================== */
+  .pin {
+    position: absolute;
+    transform: translateX(-50%);
+    z-index: 5;
+  }
+  .scene-label {
+    position: absolute; top: 10px; left: 14px;
+    font-size: 10px; letter-spacing: 0.14em; text-transform: lowercase;
+    color: var(--ink);
+    background: rgba(255,255,255,0.6);
+    padding: 4px 9px; border-radius: 4px; z-index: 6;
+    backdrop-filter: blur(4px);
+  }
+
+  ul.notes {
+    font-size: 13px; color: #555; line-height: 1.8;
+    padding-left: 1.25rem; max-width: 640px;
+  }
+  ul.notes b { color: var(--ink); font-weight: 600; }
+  .tokens {
+    background: #fff; border-radius: 10px; padding: 1rem 1.25rem;
+    margin-bottom: 2rem; font-size: 12px; color: #555;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    border: 1px solid rgba(0,0,0,0.08);
+    line-height: 1.7;
+  }
+  .tokens span { color: #222; font-weight: 500; }
+</style>
+</head>
+<body>
+
+<h1>Currents · current state</h1>
+<p class="caption">
+  Self-contained snapshot of how the live app currently paints the scene and
+  cards. Edit the design tokens in <code>:root</code> to iterate; everything
+  reads from them.
+</p>
+
+<div class="tokens">
+  card radius=<span>20px</span> · padding=<span>14×20</span> · blur=<span>4px</span> · saturate=<span>140%</span>
+  <br />
+  surface bg=<span>rgba(255,255,255,0.40)</span> · middle=<span>0.24</span> · floor=<span>0.10</span>
+  <br />
+  border=<span>cream/0.55 → 0.20</span> · corner accent=<span>currentColor 35% → 100%</span> · gold=<span>#FFE8A8</span>
+</div>
+
+<!-- =============================== -->
+<h2>full scene · all zones</h2>
+<div class="scene">
+  <div class="sky"></div>
+  <div class="sun"></div>
+  <div class="water"></div>
+  <div class="rays"></div>
+  <div class="island">
+    <div class="hill-back"></div><div class="hill-back-shadow"></div>
+    <div class="hill-front"></div><div class="hill-front-shadow"></div>
+    <div class="sand"></div><div class="sand-shadow"></div>
+  </div>
+  <div class="waterline-sheen"></div>
+  <div class="waterline"></div>
+
+  <!-- zone dividers -->
+  <div class="zone-divider" style="top: 32%;"></div>
+  <div class="zone-divider" style="top: 64%;"></div>
+
+  <!-- zone labels -->
+  <span class="zone-label" style="top: 22%;">doing now</span>
+  <span class="zone-label middle" style="top: 46%;">when you can</span>
+  <span class="zone-label floor" style="top: 80%;">at rest</span>
+
+  <span class="scene-label">currents</span>
+
+  <!-- surface zone (doing now) -->
+  <div class="task pin" style="top: 22%; left: 28%;">
+    <div class="title">finish Q3 report</div>
+    <div class="meta">2m idle</div>
+    <button class="check">✓</button>
+  </div>
+  <div class="task pin" style="top: 24%; left: 60%; width: 180px;">
+    <div class="title">call mom</div>
+    <div class="meta">just now</div>
+    <button class="check">✓</button>
+  </div>
+
+  <!-- middle zone (when you can) -->
+  <div class="task pin middle" style="top: 42%; left: 22%; width: 220px;">
+    <div class="title">book dentist</div>
+    <div class="meta">4h idle</div>
+    <button class="check">✓</button>
+  </div>
+  <div class="task pin middle" style="top: 44%; left: 56%;">
+    <div class="title">review PRs</div>
+    <div class="meta">7h idle</div>
+    <button class="check">✓</button>
+  </div>
+  <div class="task pin middle sinking-soon" style="top: 56%; left: 36%;">
+    <div class="title">macro shoot series</div>
+    <div class="meta">sinking in 1d</div>
+    <button class="check">✓</button>
+  </div>
+
+  <!-- floor zone (at rest) -->
+  <div class="task pin floor" style="top: 76%; left: 24%;">
+    <div class="title">learn rust</div>
+    <div class="meta">6d idle</div>
+    <button class="check">✓</button>
+  </div>
+  <div class="task pin floor" style="top: 84%; left: 64%; width: 180px;">
+    <div class="title">organize photos</div>
+    <div class="meta">2w idle</div>
+    <button class="check">✓</button>
+  </div>
+  <div class="task pin floor" style="top: 90%; left: 36%;">
+    <div class="title">write memoir</div>
+    <div class="meta">3w idle</div>
+    <button class="check">✓</button>
+  </div>
+</div>
+
+<!-- =============================== -->
+<h2>card states · isolated</h2>
+<div class="scene" style="height: 220px;">
+  <div class="water" style="top: 0;"></div>
+  <div class="rays" style="top: 0;"></div>
+
+  <div class="task pin" style="top: 50%; left: 14%; transform: translate(-50%, -50%);">
+    <div class="title">surface</div>
+    <div class="meta">just now</div>
+    <button class="check">✓</button>
+  </div>
+  <div class="task pin middle" style="top: 50%; left: 36%; transform: translate(-50%, -50%);">
+    <div class="title">middle</div>
+    <div class="meta">2h idle</div>
+    <button class="check">✓</button>
+  </div>
+  <div class="task pin floor" style="top: 50%; left: 58%; transform: translate(-50%, -50%);">
+    <div class="title">floor</div>
+    <div class="meta">5d idle</div>
+    <button class="check">✓</button>
+  </div>
+  <div class="task pin corner-hover" style="top: 50%; left: 80%; transform: translate(-50%, -50%);">
+    <div class="title">corner hover</div>
+    <div class="meta">just now</div>
+    <button class="check">✓</button>
+  </div>
+</div>
+
+<!-- =============================== -->
+<h2>composing · sky position</h2>
+<div class="scene" style="height: 200px;">
+  <div class="sky" style="height: 100%;"></div>
+  <div class="sun" style="top: 20%;"></div>
+  <div class="task pin editing" style="top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(255,255,255,0.85);">
+    <input value="read McGilchrist" />
+    <div class="drop-hint">enter to drop ↓</div>
+  </div>
+</div>
+
+<h2>open questions</h2>
+<ul class="notes">
+  <li>The corner accent is a thin 2px right-edge line at 26%–74% of card height. Lights up on card hover, goes warm gold + glow on direct corner hover. <b>Alternatives in flight</b>: bottom-edge line, three small dots, diagonal stripes, no visible handle.</li>
+  <li>Card blur is currently 4px (slider goes 0–12 in the dev panel). Above ~8 the cards become translucent enough that the rays/shimmer behind start showing through prominently.</li>
+  <li>Background opacity steps surface=<code>0.40</code>, middle=<code>0.24</code>, floor=<code>0.10</code>. Live app interpolates continuously with depth; this static doc shows the three banded states.</li>
+  <li>The water gradient was just darkened — at-rest zone now drops into <code>#00040C</code> at the very bottom for a heavy "settled deep water" feel.</li>
+</ul>
+
+</body>
+</html>

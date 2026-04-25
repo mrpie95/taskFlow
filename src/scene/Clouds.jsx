@@ -1,11 +1,14 @@
-// Static cloud layout — animation is done in CSS (cloudDrift).
+// Pill-shaped clouds that gently fade in/out AND drift horizontally. Each has
+// its own duration + delay so the sky is always out of sync with itself.
+// Style borrowed from the reference: flat fill, full pill border-radius,
+// opacity breathing via CSS animation.
 const CLOUDS = [
-  { top: 5, left: 8, width: 110, opacity: 0.7, delay: 0 },
-  { top: 8, left: 14, width: 70, opacity: 0.55, delay: 2 },
-  { top: 4, left: 38, width: 130, opacity: 0.65, delay: 3 },
-  { top: 10, left: 52, width: 85, opacity: 0.5, delay: 1.5 },
-  { top: 7, left: 74, width: 95, opacity: 0.6, delay: 4 },
-  { top: 11, left: 82, width: 60, opacity: 0.5, delay: 2.5 },
+  { top: 4,  left: 8,  width: 100, height: 13, fadeDur: 6,   driftDur: 6.5, delay: 0 },
+  { top: 7,  left: 22, width: 60,  height: 11, fadeDur: 7.2, driftDur: 7,   delay: 2 },
+  { top: 3,  left: 40, width: 120, height: 14, fadeDur: 8,   driftDur: 6.2, delay: 3 },
+  { top: 9,  left: 58, width: 74,  height: 12, fadeDur: 6.8, driftDur: 7.4, delay: 1.5 },
+  { top: 5,  left: 74, width: 88,  height: 13, fadeDur: 7.6, driftDur: 6.8, delay: 4 },
+  { top: 11, left: 88, width: 52,  height: 10, fadeDur: 8.5, driftDur: 7.8, delay: 2.5 },
 ];
 
 export function Clouds() {
@@ -19,8 +22,9 @@ export function Clouds() {
             top: `${c.top}vh`,
             left: `${c.left}%`,
             width: `${c.width}px`,
-            opacity: c.opacity,
-            animationDelay: `${c.delay}s`,
+            height: `${c.height}px`,
+            animationDuration: `${c.fadeDur}s, ${c.driftDur}s`,
+            animationDelay: `${c.delay}s, ${c.delay}s`,
           }}
         />
       ))}

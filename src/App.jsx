@@ -11,6 +11,16 @@ import { snapToGrid } from "./lib/grid.js";
 import { layoutTasks } from "./lib/layout.js";
 import { GridOverlay } from "./scene/GridOverlay.jsx";
 import { Scene } from "./scene/Scene.jsx";
+import { WaterCanvas } from "./scene/WaterCanvas.jsx";
+
+const WATER_DEFAULTS = {
+  springK: 0.011,
+  damping: 0.975,
+  neighborSpread: 0.14,
+  propagationPasses: 4,
+  canvasHeightVh: 17,
+  verticalForce: 0.35,
+};
 
 export default function App() {
   const {
@@ -27,14 +37,34 @@ export default function App() {
     resurface,
     startEditing,
     reposition,
+    resizeTask,
     completeTask,
     floatAway,
+    addRandomTasks,
+    clearAllTasks,
   } = useCurrents();
   const now = useClock();
   const zone = useScrollZone();
 
   const [dragCompleteEnabled, setDragCompleteEnabled] = useState(true);
   const [gridEnabled, setGridEnabled] = useState(false);
+  const [canvasWaterEnabled, setCanvasWaterEnabled] = useState(false);
+  const [cardBlur, setCardBlur] = useState(4);
+  const [waterParams, setWaterParams] = useState(WATER_DEFAULTS);
+  const updateWaterParam = (key, value) =>
+    setWaterParams((p) => ({ ...p, [key]: value }));
+  const resetWaterParams = () => setWaterParams(WATER_DEFAULTS);
+  const [devVisible, setDevVisible] = useState(() => {
+    try {
+      const v = localStorage.getItem("currents.devVisible");
+      return v == null ? true : v === "1";
+    } catch {
+      return true;
+    }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("currents.devVisible", devVisible ? "1" : "0"); } catch {}
+  }, [devVisible]);
   const focusedRef = useRef(null); // id of the card the cursor is currently over
 
   // Reposition with optional grid snapping.
@@ -94,20 +124,31 @@ export default function App() {
   }, [editingId, ascendingIds, addTask, completeTask]);
 
   // --- Layout.
+  // Cards currently mid-animation are "in flight" — collision treats them as
+  // lower priority so settled cards don't shuffle around to accommodate them.
+  const inFlightIds = useMemo(() => {
+    const s = new Set(ascendingIds);
+    for (const id of dropping) s.add(id);
+    for (const id of floatingIds) s.add(id);
+    return s;
+  }, [ascendingIds, dropping, floatingIds]);
+
   const laidOut = useMemo(
     () =>
       layoutTasks(
         tasks,
         settings,
         now,
-        typeof window !== "undefined" ? window.innerWidth : 1200
+        typeof window !== "undefined" ? window.innerWidth : 1200,
+        inFlightIds
       ),
-    [tasks, settings, now]
+    [tasks, settings, now, inFlightIds]
   );
 
   return (
     <div className="scene">
-      <Scene onSkyClick={handleSkyClick} />
+      <Scene onSkyClick={handleSkyClick} showCssWaterline={!canvasWaterEnabled} />
+      {canvasWaterEnabled && <WaterCanvas {...waterParams} />}
       {gridEnabled && <GridOverlay />}
 
       <div className="tasks">
@@ -121,7 +162,8 @@ export default function App() {
             topVh={topVh}
             deep={deep}
             inSky={inSky}
-            dropFromVh={dropping.get(task.id)}
+            cardBlur={cardBlur}
+            isDropping={dropping.has(task.id)}
             now={now}
             isEditing={editingId === task.id}
             isAscending={ascendingIds.has(task.id)}
@@ -134,6 +176,7 @@ export default function App() {
             onCommitEdit={commitEdit}
             onDiscardEdit={discardEdit}
             onReposition={handleReposition}
+            onResize={resizeTask}
             onFloatAway={floatAway}
           />
         ))}
@@ -160,12 +203,33 @@ export default function App() {
         </div>
       )}
 
-      <DevTools
-        dragCompleteEnabled={dragCompleteEnabled}
-        onDragCompleteChange={setDragCompleteEnabled}
-        gridEnabled={gridEnabled}
-        onGridChange={setGridEnabled}
-      />
+      {/* "Devs live in the deep" — toggle sits bottom-left in the floor zone */}
+      <button
+        className="dev-toggle"
+        onClick={() => setDevVisible((v) => !v)}
+        aria-label={devVisible ? "Hide dev panel" : "Show dev panel"}
+        title={devVisible ? "hide devs" : "show devs"}
+      >
+        {devVisible ? "–" : "+"}
+      </button>
+
+      {devVisible && (
+        <DevTools
+          dragCompleteEnabled={dragCompleteEnabled}
+          onDragCompleteChange={setDragCompleteEnabled}
+          gridEnabled={gridEnabled}
+          onGridChange={setGridEnabled}
+          canvasWaterEnabled={canvasWaterEnabled}
+          onCanvasWaterChange={setCanvasWaterEnabled}
+          waterParams={waterParams}
+          onWaterParamChange={updateWaterParam}
+          onWaterReset={resetWaterParams}
+          onAddRandomTasks={addRandomTasks}
+          onClearAllTasks={clearAllTasks}
+          cardBlur={cardBlur}
+          onCardBlurChange={setCardBlur}
+        />
+      )}
     </div>
   );
 }

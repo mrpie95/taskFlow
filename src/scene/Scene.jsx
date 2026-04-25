@@ -1,16 +1,20 @@
 import { Bioluminescence } from "./Bioluminescence.jsx";
 import { Clouds } from "./Clouds.jsx";
+import { Island } from "./Island.jsx";
+import { IslandBase } from "./IslandBase.jsx";
 import { Noise } from "./Noise.jsx";
-import { Particles } from "./Particles.jsx";
-import { Rays } from "./Rays.jsx";
+import { ParticleField } from "./ParticleField.jsx";
+import { RaysCanvas } from "./RaysCanvas.jsx";
 import { Seabed } from "./Seabed.jsx";
+import { Waterline } from "./Waterline.jsx";
 import { Waves } from "./Waves.jsx";
 import { ZoneDividers } from "./ZoneDividers.jsx";
 import { ZoneLabels } from "./ZoneLabels.jsx";
 
 // The full ambient scene: sky + water + all background texture layers.
-// Click handling is delegated up so the parent can run its own create flow.
-export function Scene({ onSkyClick }) {
+// `showCssWaterline` turns the static highlight/foam/specular treatment off
+// when the canvas water prototype is running (so they don't fight).
+export function Scene({ onSkyClick, showCssWaterline = true }) {
   return (
     <>
       <div
@@ -19,8 +23,11 @@ export function Scene({ onSkyClick }) {
         role="button"
         aria-label="Click to drop a new task"
       >
-        <div className="sun" />
+        <div className="sun">
+          <div className="sun-half" />
+        </div>
         <Clouds />
+        <Island />
       </div>
 
       <div className="water">
@@ -31,10 +38,14 @@ export function Scene({ onSkyClick }) {
         <Seabed />
       </div>
 
-      <div className="waterline" aria-hidden="true" />
-      <Waves />
-      <Rays />
-      <Particles />
+      {/* Submerged part of the island — sits below the waterline, visible
+          through the water surface when troughs pass overhead. */}
+      <IslandBase />
+
+      {showCssWaterline && <Waterline />}
+      {showCssWaterline && <Waves />}
+      <RaysCanvas />
+      <ParticleField />
       <Bioluminescence />
       <ZoneDividers />
       <ZoneLabels />

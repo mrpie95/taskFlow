@@ -13,7 +13,6 @@ import { computeDepth, hash01 } from "./util.js";
 const GAP_X_PX = 8;              // min horizontal breathing room between cards
 const GAP_Y_VH = 1.2;            // min vertical breathing room between cards
 const MAX_TRIES = 40;            // how hard we try to place a single card
-const VH_TO_PX_RATIO = 10;       // rough px-per-vh for axis-cost comparison
 
 // --- Public API --------------------------------------------------------
 
@@ -34,15 +33,29 @@ const VH_TO_PX_RATIO = 10;       // rough px-per-vh for axis-cost comparison
 //     spot — it's placed first.
 //   - Chains resolve naturally because every card sees all previously-placed
 //     cards as fixed walls.
-export function layoutTasks(tasks, settings, now, viewportWidth = 1200) {
-  const items = tasks.map((t) => initialItem(t, settings, now));
+export function layoutTasks(
+  tasks,
+  settings,
+  now,
+  viewportWidth = 1200,
+  inFlightIds = null
+) {
+  const items = tasks.map((t) => {
+    const item = initialItem(t, settings, now);
+    item.inFlight = inFlightIds ? inFlightIds.has(t.id) : false;
+    return item;
+  });
 
-  // Place in priority order. The sorted array is separate from `items` so we
-  // preserve React's expected rendering order (matches `tasks`).
   const order = [...items].sort(byPlacementPriority);
   const placed = [];
   for (const item of order) {
-    placeWithoutOverlap(item, placed, viewportWidth);
+    // In-flight cards (drop / ascent / float-away) don't go through collision
+    // resolution — they land wherever their animation takes them and may
+    // overlap existing cards briefly. Settled cards still resolve against
+    // each other so the base scene stays clean.
+    if (!item.inFlight) {
+      placeWithoutOverlap(item, placed, viewportWidth);
+    }
     placed.push(item);
   }
 
@@ -54,12 +67,13 @@ export function layoutTasks(tasks, settings, now, viewportWidth = 1200) {
 }
 
 // --- Placement priority ------------------------------------------------
-
+// Older settled cards go first → they keep their spots. Newer settled cards
+// place around them, nudging themselves to fit (never pushing older cards
+// out of the way). In-flight cards go last.
 function byPlacementPriority(a, b) {
-  // Manually-placed cards claim their spot first. Within each group, the
-  // most recently-touched card comes first.
+  if (a.inFlight !== b.inFlight) return a.inFlight ? 1 : -1;
   if (a.manual !== b.manual) return a.manual ? -1 : 1;
-  return b.task.last_touched_at - a.task.last_touched_at;
+  return a.task.last_touched_at - b.task.last_touched_at;
 }
 
 // --- Core placement ----------------------------------------------------
@@ -94,38 +108,46 @@ function overlapsWithGap(a, b, vw) {
   return overlapX > -GAP_X_PX && overlapY > -GAP_Y_VH;
 }
 
-// Push `item` the shortest distance that separates it from `other`.
-// Prefer the axis with smaller required travel. If that axis is blocked by
-// the viewport / water bounds, fall through to the other axis.
+// Push `item` apart from `other`. Horizontal first, so cards fill a zone
+// sideways before sinking to the next. Only when both sides of the current
+// row are blocked does a card get pushed down into deeper water. Floor-zone
+// cards can't sink further, so they naturally spread sideways.
 function nudgeApart(item, other, vw) {
   const aL = centerToLeftPx(item, vw);
   const aR = aL + item.widthPx;
   const bL = centerToLeftPx(other, vw);
   const bR = bL + other.widthPx;
 
-  // Separation distances (how far to move to restore the gap).
   const needX = Math.min(aR, bR) - Math.max(aL, bL) + GAP_X_PX;
   const needY =
     Math.min(item.topVh + CARD_H_VH, other.topVh + CARD_H_VH) -
     Math.max(item.topVh, other.topVh) +
     GAP_Y_VH;
 
-  // Compare cost of each axis in a common unit (px).
-  const needYAsPx = needY * VH_TO_PX_RATIO;
-  const preferX = needX < needYAsPx;
+  if (tryPushX(item, other, needX, vw)) return;
+  if (tryPushXOpposite(item, other, needX, vw)) return;
+  if (tryPushDown(item, needY)) return;
+  if (tryPushUp(item, needY)) return;
 
-  if (preferX) {
-    if (tryPushX(item, other, needX, vw)) return;
-    if (tryPushY(item, other, needY)) return;
-  } else {
-    if (tryPushY(item, other, needY)) return;
-    if (tryPushX(item, other, needX, vw)) return;
-  }
-
-  // Both axes clamped. Force a downward bump — the water column is tall, so
-  // there's almost always room below. This is the "last resort" for dense
-  // clusters near the viewport edge.
+  // Nowhere left to go — force a downward bump regardless of bounds.
   item.topVh = Math.min(FLOOR_MAX_VH, item.topVh + needY);
+}
+
+// Unconditional downward push. Overlapping cards sink — simple and matches
+// the water metaphor. Returns false only when the card is already at the
+// absolute floor.
+function tryPushDown(item, needY) {
+  const target = item.topVh + needY;
+  if (target > FLOOR_MAX_VH) return false;
+  item.topVh = target;
+  return true;
+}
+
+function tryPushUp(item, needY) {
+  const target = item.topVh - needY;
+  if (target < WATERLINE_VH + 1) return false;
+  item.topVh = target;
+  return true;
 }
 
 function tryPushX(item, other, needX, vw) {
@@ -138,12 +160,13 @@ function tryPushX(item, other, needX, vw) {
   return true;
 }
 
-function tryPushY(item, other, needY) {
-  const dir = item.topVh >= other.topVh ? 1 : -1;
-  const target = item.topVh + dir * needY;
-  const clamped = clamp(target, WATERLINE_VH + 1, FLOOR_MAX_VH);
+function tryPushXOpposite(item, other, needX, vw) {
+  const dir = item.leftPct >= other.leftPct ? -1 : 1;
+  const halfPct = halfWidthPct(item, vw);
+  const target = item.leftPct + dir * (needX / vw) * 100;
+  const clamped = clamp(target, halfPct, 100 - halfPct);
   if (Math.abs(clamped - target) > 0.01) return false;
-  item.topVh = clamped;
+  item.leftPct = clamped;
   return true;
 }
 
@@ -157,7 +180,12 @@ function initialItem(task, settings, now) {
     : timeDepth;
 
   const widthHash = hash01(task.id, 2);
-  const widthPx = Math.round((150 + widthHash * 50) * (1 - depth * 0.22));
+  // Honor a user-set manual width if one exists; otherwise pick a deterministic
+  // width from the task's id so the same card is always the same size.
+  const widthPx =
+    task.manual_w != null
+      ? Math.round(task.manual_w)
+      : Math.round((170 + widthHash * 70) * (1 - depth * 0.22));
 
   // Auto placement (for any task that somehow lacks a manual position).
   // Deterministic via hash so the same id always lands in the same slot.

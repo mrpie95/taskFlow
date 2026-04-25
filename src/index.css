@@ -54,41 +54,193 @@ button { font-family: inherit; }
   cursor: crosshair;
 }
 
+/* Sun — flat yellow disc with a darker "shadow half" covering the right side,
+   and a pulsing warm box-shadow for the glow. Style from the reference. */
 .sun {
   position: absolute;
   top: 4vh;
   right: 10vw;
-  width: 90px; height: 90px;
+  width: 80px; height: 80px;
   border-radius: 50%;
-  background: radial-gradient(circle at 50% 50%,
-    var(--sun-core) 0%,
-    var(--sun-mid) 40%,
-    var(--sun-edge) 100%);
-  animation: sunPulse 6s ease-in-out infinite;
+  background: var(--sun-mid);
+  animation: sunGlow 3.6s ease-in-out infinite;
   z-index: 3;
 }
-.sun::after {
-  content: "";
+.sun-half {
   position: absolute;
-  inset: -14px;
-  border-radius: 50%;
-  background: radial-gradient(circle at center, rgba(255,232,168,0.35) 0%, rgba(255,232,168,0) 70%);
+  top: 0;
+  right: 0;
+  width: 50%;
+  height: 100%;
+  background: var(--sun-edge);
+  border-radius: 0 40px 40px 0;
 }
-@keyframes sunPulse {
-  0%,100% { opacity: 1; transform: scale(1); }
-  50%     { opacity: 0.92; transform: scale(1.03); }
+@keyframes sunGlow {
+  0%, 100% { box-shadow: 0 0 30px rgba(255, 232, 168, 0.55); }
+  50%      { box-shadow: 0 0 70px rgba(255, 232, 168, 0.85); }
 }
 
+/* Clouds — warm-white pills with a soft top-brighter/bottom-cooler gradient
+   inside each one. Breathe + drift on per-cloud timings. */
 .cloud {
   position: absolute;
+  background: linear-gradient(180deg, #FFFFF2 0%, #FDEDCC 100%);
+  border-radius: 100px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.4) inset;
+  animation-name: cloudFade, cloudDrift;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: normal, alternate;
+}
+@keyframes cloudFade {
+  0%, 100% { opacity: 0.35; }
+  50%      { opacity: 0.95; }
+}
+
+/* ---------- Distant horizon island ----------
+   Style reference for all div-composition scene elements: each shape is a
+   single solid color, with a "shadow half" sibling offset to one side for
+   dimension. Muted palette here for distance; the technique scales up to
+   brighter, more detailed creations. */
+.island {
+  position: absolute;
+  left: 8%;
+  bottom: 0;
+  width: 140px;
+  height: 56px;
+  pointer-events: none;
+  filter: blur(0.3px);
+  opacity: 0.85;
+}
+
+/* Back hill — muted sage green with a subtle warm-top → cool-base gradient
+   (Kurzgesagt-flavor: flat shapes with a breath of inner light). */
+.isl-hill-back {
+  position: absolute;
+  left: 16px;
+  bottom: 10px;
+  width: 78px;
+  height: 32px;
+  background: linear-gradient(180deg, #A8BD82 0%, #849865 100%);
+  border-radius: 50% 50% 0 0;
+}
+.isl-hill-back-shadow {
+  position: absolute;
+  left: 55px;
+  bottom: 10px;
+  width: 39px;
+  height: 32px;
+  background: linear-gradient(180deg, #869763 0%, #627A4A 100%);
+  border-radius: 0 50% 0 0;
+}
+
+/* Front hill — warmer and a touch more saturated than the back */
+.isl-hill-front {
+  position: absolute;
+  left: 68px;
+  bottom: 8px;
+  width: 52px;
+  height: 20px;
+  background: linear-gradient(180deg, #BCD094 0%, #94AC70 100%);
+  border-radius: 50% 50% 0 0;
+}
+.isl-hill-front-shadow {
+  position: absolute;
+  left: 94px;
+  bottom: 8px;
+  width: 26px;
+  height: 20px;
+  background: linear-gradient(180deg, #94AD6F 0%, #738956 100%);
+  border-radius: 0 50% 0 0;
+}
+
+/* Sand base — warm cream fading to a sandier tone */
+.isl-sand {
+  position: absolute;
+  left: 8px;
+  bottom: 0;
+  width: 118px;
   height: 12px;
-  border-radius: 20px;
-  background: rgba(255,255,255,0.7);
-  animation: cloudDrift 16s ease-in-out infinite;
+  background: linear-gradient(180deg, #F0DBB0 0%, #D8B98A 100%);
+  border-radius: 16px 8px 0 0;
+}
+.isl-sand-shadow {
+  position: absolute;
+  left: 67px;
+  bottom: 0;
+  width: 59px;
+  height: 12px;
+  background: linear-gradient(180deg, #CFAC78 0%, #A8854C 100%);
+  border-radius: 0 8px 0 0;
+}
+
+/* Palm tree — trunk + 5 rotated leaves. left/bottom/scale set inline so
+   multiple palms can live at different x-positions with different heights. */
+.isl-palm {
+  position: absolute;
+  width: 14px;
+  height: 22px;
+}
+.isl-trunk {
+  position: absolute;
+  left: 6px;
+  bottom: 0;
+  width: 2px;
+  height: 16px;
+  background: #B89870;
+}
+.isl-leaf {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 100% 0 100% 0;
+  background: #7A9A48;
+}
+.isl-leaf-1 { left: 2px; bottom: 16px; transform: rotate(-45deg); }
+.isl-leaf-2 { left: -3px; bottom: 13px; transform: rotate(-90deg); }
+.isl-leaf-3 { left: 8px; bottom: 13px; transform: rotate(-180deg); }
+.isl-leaf-4 { left: 9px; bottom: 10px; transform: rotate(-300deg); background: #648035; }
+.isl-leaf-5 { left: -5px; bottom: 10px; transform: rotate(-335deg); background: #648035; }
+
+/* ---------- Submerged island base ----------
+   Sits just below the waterline, aligned with the island's x-range. Murky
+   sand tones with semi-transparency so the water color tints it like a
+   real submerged landmass. z-index 3 sits above the water gradient (1) so
+   the base is visible regardless of wave displacement. */
+.island-base {
+  position: absolute;
+  top: 20vh;
+  left: 8%;
+  width: 140px;
+  height: 46px;
+  pointer-events: none;
+  z-index: 3;
+}
+/* Submerged island base — sandy bell shape continuing below the waterline.
+   Rounded bottom corners give it the cute grounded-in-the-water form. */
+.isl-base-shape {
+  position: absolute;
+  top: 0;
+  left: 8px;
+  width: 118px;
+  height: 46px;
+  background: linear-gradient(180deg, #A88659 0%, #4A3A22 100%);
+  border-radius: 0 0 40% 40% / 0 0 60% 60%;
+  opacity: 0.78;
+}
+.isl-base-shape-shadow {
+  position: absolute;
+  top: 0;
+  left: 67px;
+  width: 59px;
+  height: 46px;
+  background: linear-gradient(180deg, #7E6440 0%, #2F2314 100%);
+  border-radius: 0 0 60% 60% / 0 0 60% 60%;
+  opacity: 0.78;
 }
 @keyframes cloudDrift {
-  0%,100% { transform: translateX(0); }
-  50%     { transform: translateX(10px); }
+  from { transform: translateX(0); }
+  to   { transform: translateX(30px); }
 }
 
 .water {
@@ -96,14 +248,17 @@ button { font-family: inherit; }
   top: 20vh;
   left: 0; right: 0;
   height: calc(185vh - 20vh);
+  /* Gradient — the "at rest" zone (60% → 100%) drops fast into near-black so
+     the floor reads as heavy, silent deep water. Light half is unchanged. */
   background: linear-gradient(180deg,
-    var(--water-surface) 0%,
-    var(--water-shallow) 10%,
-    var(--water-mid) 26%,
-    var(--water-deep-mid) 44%,
-    var(--water-lower-deep) 66%,
-    var(--water-floor-top) 84%,
-    var(--water-floor-bottom) 100%);
+    var(--water-shallow) 0%,
+    var(--water-mid) 14%,
+    var(--water-deep-mid) 30%,
+    var(--water-lower-deep) 46%,
+    var(--water-floor-top) 58%,
+    #041020 72%,
+    #020814 86%,
+    #00040C 100%);
   z-index: 1;
   overflow: hidden;
 }
@@ -195,25 +350,109 @@ button { font-family: inherit; }
   /* noise is static — animating its transform forces SVG filter re-paint and is jank */
 }
 
-/* ---------- Waterline ---------- */
+/* ---------- Waterline — multi-layered water surface ----------
+   - `.waterline-sheen`: a soft sunlit wash fading into the shallows so the
+     surface has depth rather than being a hard line.
+   - `.waterline`: the crisp highlight ridge where sky meets water.
+   - `.waterline-specular`: slow-fading light streaks, like sun catching on
+     tiny ripples.
+   - `.waterline-foam`: pinprick foam specks along the surface, each blinking
+     at its own cadence so the surface reads as alive. */
+
+.waterline-sheen {
+  position: absolute;
+  top: 20vh;
+  left: 0; right: 0;
+  height: 5vh;
+  pointer-events: none;
+  z-index: 3;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.42) 0%,
+    rgba(255, 255, 255, 0.22) 22%,
+    rgba(255, 255, 255, 0.08) 55%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  mix-blend-mode: screen;
+}
+
 .waterline {
   position: absolute;
   top: 20vh;
   left: 0; right: 0;
-  height: 3px;
-  z-index: 4;
+  height: 2px;
+  z-index: 5;
   pointer-events: none;
   background: linear-gradient(
     90deg,
     rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.7) 20%,
-    rgba(255, 255, 255, 0.9) 50%,
-    rgba(255, 255, 255, 0.7) 80%,
+    rgba(255, 255, 255, 0.85) 18%,
+    rgba(255, 255, 255, 1) 50%,
+    rgba(255, 255, 255, 0.85) 82%,
     rgba(255, 255, 255, 0) 100%
   );
   box-shadow:
-    0 1px 0 rgba(4, 44, 83, 0.15),
-    0 2px 8px rgba(255, 255, 255, 0.4);
+    0 1px 0 rgba(4, 44, 83, 0.18),
+    0 0 10px rgba(255, 255, 255, 0.55);
+}
+
+/* Specular light streaks — long slow fade in/out at different phases */
+.waterline-specular {
+  position: absolute;
+  top: 20vh;
+  left: 0; right: 0;
+  height: 4vh;
+  pointer-events: none;
+  z-index: 5;
+  mix-blend-mode: screen;
+}
+.specular {
+  position: absolute;
+  height: 1.5px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.9) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  border-radius: 2px;
+  opacity: 0;
+  animation-name: specularFlicker;
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-in-out;
+}
+@keyframes specularFlicker {
+  0%, 100% { opacity: 0; transform: translateX(0); }
+  40%      { opacity: 0.9; transform: translateX(4px); }
+  60%      { opacity: 0.65; transform: translateX(6px); }
+}
+
+/* Foam specks — pulsing dots right on the waterline */
+.waterline-foam {
+  position: absolute;
+  top: 20vh;
+  left: 0; right: 0;
+  height: 3px;
+  pointer-events: none;
+  z-index: 6;
+}
+.foam {
+  position: absolute;
+  top: 0;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  animation-name: foamBlink;
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-in-out;
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
+}
+@keyframes foamBlink {
+  0%, 100% { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
+  50%      { opacity: 0.95; transform: translate(-50%, -50%) scale(1.1); }
 }
 
 /* ---------- Waves (calm crest lines) ----------
@@ -252,72 +491,32 @@ button { font-family: inherit; }
   to   { transform: translate3d(-50%, 0, 0); }
 }
 
-/* ---------- God rays ---------- */
-.rays {
+/* ---------- God rays (canvas) ----------
+   Each ray's pulse + sway is computed in JS each frame; CSS just positions
+   the canvas and screen-blends it onto the water. */
+.rays-canvas {
   position: absolute;
-  top: 20vh; left: -8%;
-  width: 116%;
-  height: calc(100% - 20vh);
+  top: 20vh;
+  left: 0;
   pointer-events: none;
-  mix-blend-mode: screen;
   z-index: 5;
-  overflow: hidden;
-  will-change: transform;
+  mix-blend-mode: screen;
 }
 
-/* Each ray's pulse + sway timing is set inline per element so every ray
-   has its own cycle — the scene never sits in sync. */
-.ray {
-  transform-origin: 80% 0%;
-  transform-box: fill-box;
-  will-change: transform, opacity;
-}
-
-@keyframes rayPulse {
-  0%, 100% { opacity: 0.8; }
-  50%      { opacity: 0.4; }
-}
-@keyframes raySway {
-  0%, 100% { transform: translateX(0) skewX(0deg); }
-  50%      { transform: translateX(1.2%) skewX(-0.4deg); }
-}
-
-/* ---------- Particles ---------- */
-.particles {
+/* ---------- Particle field (canvas) ---------- */
+.particle-field {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
   pointer-events: none;
-  z-index: 4;
-}
-.particle {
-  position: absolute;
-  background: rgba(255, 255, 255, 0.55);
-  border-radius: 50%;
-  will-change: transform;
-}
-
-@keyframes drift-a {
-  0%   { transform: translate(0, 0); }
-  50%  { transform: translate(12px, -8px); }
-  100% { transform: translate(0, 0); }
-}
-@keyframes drift-b {
-  0%   { transform: translate(0, 0); }
-  50%  { transform: translate(-14px, 6px); }
-  100% { transform: translate(0, 0); }
-}
-@keyframes drift-c {
-  0%   { transform: translate(0, 0); }
-  33%  { transform: translate(8px, 10px); }
-  66%  { transform: translate(-6px, -8px); }
-  100% { transform: translate(0, 0); }
+  z-index: 3;
 }
 
 /* ---------- Seabed (inside water) ---------- */
 .seabed {
   position: absolute;
   left: 0; right: 0; bottom: 0;
-  height: 8vh;
+  height: 12vh;
   pointer-events: none;
   z-index: 3;
 }
@@ -349,10 +548,16 @@ button { font-family: inherit; }
 
 .task {
   position: absolute;
-  padding: 11px 14px;
-  border-radius: 10px;
+  padding: 14px 20px;
+  border-radius: 20px;
   color: var(--ink);
-  border: 0.5px solid rgba(4, 44, 83, 0.12);
+  border: 0.5px solid rgba(255, 248, 220, 0.55);
+  /* Glass pane: bright highlight on the top lip, hairline darker shadow on
+     the bottom, plus a soft drop shadow for floating feel. */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -0.5px 0 rgba(4, 44, 83, 0.04),
+    0 6px 18px rgba(4, 44, 83, 0.08);
   pointer-events: auto;
   transition: top 1200ms cubic-bezier(0.22, 1, 0.36, 1),
               left 1200ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -360,8 +565,25 @@ button { font-family: inherit; }
               border-color 300ms ease,
               box-shadow 300ms ease,
               color 300ms ease;
-  /* Each card has its own sway cadence via CSS vars (set inline on the element). */
+  /* Each card has its own sway cadence via CSS vars (set inline). */
   animation: cardSway var(--sway-dur, 6s) ease-in-out var(--sway-delay, 0s) infinite;
+}
+
+/* Right-edge accent — a thin vertical line on the card's right side, sitting
+   inside the rounded corner. Faint at rest, lights up on hover, full glow
+   when you hover the resize area itself. */
+.task::after {
+  content: "";
+  position: absolute;
+  top: 26%;
+  bottom: 26%;
+  right: 4px;
+  width: 2px;
+  border-radius: 2px;
+  background: currentColor;
+  pointer-events: none;
+  opacity: 0.35;
+  transition: opacity 180ms ease, box-shadow 180ms ease, background 180ms ease;
 }
 
 /* Ambient floating motion — slow vertical bob + faint horizontal drift. Every
@@ -380,7 +602,7 @@ button { font-family: inherit; }
   line-height: 1.35;
   letter-spacing: 0.005em;
   word-break: break-word;
-  padding-right: 26px;
+  padding-right: 30px;
 }
 
 .task-meta {
@@ -442,7 +664,7 @@ button { font-family: inherit; }
 
 .task .check {
   position: absolute;
-  top: 10px; right: 12px;
+  top: 14px; right: 16px;
   width: 22px; height: 22px;
   border-radius: 50%;
   border: 1px solid currentColor;
@@ -458,6 +680,32 @@ button { font-family: inherit; }
 }
 .task:hover .check, .task:focus-within .check { opacity: 1; }
 .task .check:hover { background: rgba(255, 255, 255, 0.25); transform: scale(1.08); }
+
+/* Resize handle — invisible hit-area sitting on top of the bottom-right
+   corner bracket. The bracket itself (.task::after above) is the visible
+   affordance; this just catches pointer events so the card drag doesn't
+   fire when grabbing the corner. */
+.task-resize {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 32px;
+  height: 32px;
+  cursor: nwse-resize;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+/* Right-edge line lights up on hover. When the resize area is directly
+   hovered, the line extends to fill the card height and gains a warm glow. */
+.task:hover::after {
+  opacity: 0.85;
+}
+.task:has(.task-resize:hover)::after {
+  opacity: 1;
+  background: rgba(255, 232, 168, 1);
+  box-shadow: 0 0 8px rgba(255, 232, 168, 0.9);
+}
 
 .task.ascending {
   animation: ascent 2500ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
@@ -520,25 +768,19 @@ button { font-family: inherit; }
 }
 
 /* ---------- Drop animation (sky -> water) ----------
-   Two phases: gravity in air (accelerate), then drag in water (decelerate).
-   Piecewise easing is set at each keyframe. */
+   Single-curve fall: starts accelerating like gravity, decelerates into rest
+   like water drag. `both` fill-mode applies the starting keyframe the
+   instant the class lands, so the card never flashes at its final position
+   before the animation begins. The splash ornament is timed by a rAF
+   watcher on the real DOM rect, not by a keyframe percentage — so this
+   works regardless of how deep the landing is. */
 .task.dropping {
-  animation: cardDrop 1.25s forwards;
+  animation: cardDrop 2s cubic-bezier(0.45, 0, 0.2, 1) both;
   transition: none !important;
 }
 @keyframes cardDrop {
-  0% {
-    transform: translateY(var(--drop-from, -21vh));
-    animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.35);
-  }
-  40% {
-    /* At the waterline — gravity has accelerated the card through the air */
-    transform: translateY(var(--splash-y, -8vh));
-    animation-timing-function: cubic-bezier(0.05, 0.55, 0.25, 1);
-  }
-  100% {
-    transform: translateY(0);
-  }
+  from { transform: translateY(var(--drop-from, -21vh)); }
+  to   { transform: translateY(0); }
 }
 
 /* ---------- In-sky composing card ---------- */
@@ -552,8 +794,8 @@ button { font-family: inherit; }
   50%      { transform: translateY(-3px); }
 }
 .task.editing {
-  padding: 13px 16px;
-  border-radius: 12px;
+  padding: 16px 22px;
+  border-radius: 22px;
 }
 
 /* Float-away must win over in-sky/dropping animations */
@@ -598,11 +840,17 @@ button { font-family: inherit; }
 .biolum-dot {
   position: absolute;
   border-radius: 50%;
+  /* Displacement driven by rAF via --dx / --dy; pulse via opacity only
+     so the transform channel is free. */
+  transform: translate(var(--dx, 0px), var(--dy, 0px));
+  animation-name: biolumPulse;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
   will-change: opacity, transform;
 }
 @keyframes biolumPulse {
-  0%, 100% { opacity: 0; transform: scale(0.6); }
-  50%      { opacity: 0.85; transform: scale(1.1); }
+  0%, 100% { opacity: 0; }
+  50%      { opacity: 1; }
 }
 
 /* ---------- Zone dividers ---------- */
@@ -665,6 +913,43 @@ button { font-family: inherit; }
 .depth-indicator.deep .depth-dot { border-color: rgba(255,255,255,0.6); }
 .depth-indicator.deep .depth-dot.active { background: #fff; border-color: #fff; }
 
+/* Spring-physics water canvas (dev toggle). Extends above the waterline so
+   ballistic droplets have sky room to fly up into. SKY_MARGIN_VH in the
+   component matches the 14vh offset here. */
+.water-canvas {
+  position: absolute;
+  top: calc(20vh - 14vh);
+  left: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* The lone dev button in the deep — bottom left, faint in cream-on-navy
+   so it reads like a quiet signal to the builder. */
+.dev-toggle {
+  position: fixed;
+  bottom: 18px;
+  left: 18px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 248, 220, 0.16);
+  border: 1px solid rgba(255, 248, 220, 0.45);
+  color: rgba(255, 248, 220, 0.8);
+  cursor: pointer;
+  z-index: 60;
+  font-size: 16px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  transition: background 150ms ease, color 150ms ease;
+  padding: 0;
+}
+.dev-toggle:hover {
+  background: rgba(255, 248, 220, 0.32);
+  color: #FFF8DC;
+}
+
 .splash-tuner {
   position: fixed;
   top: 16px;
@@ -683,6 +968,63 @@ button { font-family: inherit; }
 .splash-tuner label.toggle-row { margin-top: 6px; gap: 6px; }
 .splash-tuner input[type="range"] { width: 160px; accent-color: var(--ink); }
 .splash-tuner input[type="checkbox"] { accent-color: var(--ink); }
+
+/* Water-tuner slider group — appears under the canvas-water toggle */
+.slider-group {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(4, 44, 83, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.slider-row {
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 2px !important;
+}
+.slider-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: rgba(4, 44, 83, 0.7);
+}
+.slider-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  color: var(--ink);
+}
+.slider-row input[type="range"] { width: 100% !important; }
+
+.reset-btn {
+  margin-top: 6px;
+  background: transparent;
+  border: 1px solid rgba(4, 44, 83, 0.25);
+  color: rgba(4, 44, 83, 0.8);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: lowercase;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+  align-self: flex-start;
+}
+.reset-btn:hover {
+  background: rgba(4, 44, 83, 0.06);
+  color: var(--ink);
+}
+
+.dev-actions {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(4, 44, 83, 0.12);
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
 
 .hint {
   position: fixed;
@@ -713,6 +1055,6 @@ button { font-family: inherit; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .task, .particle, .wave, .ray, .cloud, .sun,
+  .task, .wave, .cloud, .sun,
   .shimmer, .swell { animation: none !important; }
 }

@@ -17,8 +17,15 @@ export function useCardDrag({ leftPct, topVh, enabled, onClick, onDrop }) {
 
   function onPointerDown(e) {
     if (!enabled) return;
-    // Don't start a drag from interactive children (✓ button, text input).
-    if (e.target.closest(".check") || e.target.closest("input")) return;
+    // Don't start a drag from interactive children (✓ button, text input,
+    // resize handle).
+    if (
+      e.target.closest(".check") ||
+      e.target.closest("input") ||
+      e.target.closest(".task-resize")
+    ) {
+      return;
+    }
     e.currentTarget.setPointerCapture?.(e.pointerId);
     state.current = {
       active: true,

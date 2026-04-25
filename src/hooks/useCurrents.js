@@ -1,10 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { loadState, saveState } from "../lib/state.js";
 import { hash01, uid } from "../lib/util.js";
-import { SKY_COMPOSE_VH, WATERLINE_VH } from "../lib/geometry.js";
+import {
+  SKY_COMPOSE_VH,
+  WATERLINE_VH,
+  WATER_RANGE_VH,
+  WATER_TOP_VH,
+} from "../lib/geometry.js";
 
 // Animation timings (tune here, in one place).
-const DROP_CLEAR_MS = 1350;
+const DROP_CLEAR_MS = 2100;
 const ASCENT_TOTAL_MS = 2500;
 const FLOAT_AWAY_MS = 1600;
 const SPLASH_LIFETIME_MS = 1100;
@@ -41,7 +46,8 @@ export function useCurrents() {
 
   // Transient animation state.
   const [ascendingIds, setAscendingIds] = useState(() => new Set());
-  const [dropping, setDropping] = useState(() => new Map()); // id -> vh distance above landing
+  // Which tasks are currently mid-drop animation (set for membership tests).
+  const [dropping, setDropping] = useState(() => new Set());
   const [floatingIds, setFloatingIds] = useState(() => new Set());
   const [splashes, setSplashes] = useState([]);
 
@@ -55,10 +61,30 @@ export function useCurrents() {
   const spawnSplash = useCallback((leftPct, widthPx = 160) => {
     const id = uid();
     setSplashes((prev) => [...prev, { id, leftPct, widthPx }]);
+    // Kick the canvas water surface if it's rendered — scales force with width.
+    if (typeof window !== "undefined") {
+      const xPx = (leftPct / 100) * window.innerWidth;
+      const force = Math.min(40, 16 + widthPx * 0.08);
+      window.dispatchEvent(
+        new CustomEvent("water:splash", { detail: { x: xPx, force } })
+      );
+    }
     setTimeout(() => {
       setSplashes((prev) => prev.filter((s) => s.id !== id));
     }, SPLASH_LIFETIME_MS);
   }, []);
+
+  // Anything in the scene can request a splash (ring + droplets) by dispatching
+  // `scene:splash` with { leftPct, widthPx }. Currently the canvas uses this
+  // when the cursor tears upward through the surface.
+  useEffect(() => {
+    function onSceneSplash(e) {
+      const { leftPct, widthPx } = e.detail || {};
+      if (typeof leftPct === "number") spawnSplash(leftPct, widthPx ?? 140);
+    }
+    window.addEventListener("scene:splash", onSceneSplash);
+    return () => window.removeEventListener("scene:splash", onSceneSplash);
+  }, [spawnSplash]);
 
   // --- Actions ---------------------------------------------------------
 
@@ -101,19 +127,16 @@ export function useCurrents() {
 
       // New tasks land in the "when you can" middle zone by default — the
       // surface band ("doing now") is reserved for whatever you drag up and
-      // pin there explicitly.
-      let distanceVh = 0;
-      let landingX = 45;
+      // pin there explicitly. TaskCard computes its own drop-from offset from
+      // the rendered topVh, so we don't need to store the distance here.
       setTasks((prev) => {
         const skyTask = prev.find((t) => t.id === id);
         const skyX = skyTask?.manual_x ?? 45;
-        const skyY = skyTask?.manual_y ?? SKY_COMPOSE_VH;
-        // Middle band spans roughly 55..110vh with FLOOR_MAX_VH = 175 and
-        // surface ending at ~52vh (20% of the water range).
-        const landingY = 65 + hash01(id, 8) * 28; // 65..93vh — middle band
+        // Land near the TOP of the "when you can" band — just below the
+        // surface/middle boundary (~52vh) — not deep into it.
+        const landingY = 55 + hash01(id, 8) * 14; // 55..69vh
         const xJitter = (hash01(id, 9) - 0.5) * 16; // ±8% sideways drift
-        landingX = Math.max(10, Math.min(90, skyX + xJitter));
-        distanceVh = skyY - landingY;
+        const landingX = Math.max(10, Math.min(90, skyX + xJitter));
 
         return prev.map((t) =>
           t.id === id
@@ -129,10 +152,10 @@ export function useCurrents() {
       });
       setEditingId(null);
 
-      // Trigger drop animation (keyframes read --drop-from / --splash-y).
-      setDropping((prev) => new Map(prev).set(id, distanceVh));
+      // Flag the card as "dropping" so TaskCard applies the animation class.
+      setDropping((prev) => new Set(prev).add(id));
 
-      // Fire the splash the instant the card's bottom edge touches the
+      // Fire the splash the instant the card's bottom edge crosses the
       // waterline — watch the real rect, no timer guess.
       watchWaterlineCrossing(
         id,
@@ -141,7 +164,7 @@ export function useCurrents() {
       );
       setTimeout(() => {
         setDropping((prev) => {
-          const n = new Map(prev);
+          const n = new Set(prev);
           n.delete(id);
           return n;
         });
@@ -178,6 +201,17 @@ export function useCurrents() {
     );
   }, []);
 
+  // User resized a card via the corner tag — persist the custom width.
+  const resizeTask = useCallback((id, widthPx) => {
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === id
+          ? { ...t, manual_w: Math.round(widthPx), last_touched_at: Date.now() }
+          : t
+      )
+    );
+  }, []);
+
   const completeTask = useCallback(
     (id) => {
       setAscendingIds((prev) => {
@@ -203,6 +237,40 @@ export function useCurrents() {
     },
     [spawnSplash]
   );
+
+  // --- Dev helpers -----------------------------------------------------
+
+  const addRandomTasks = useCallback((n = 15) => {
+    const SAMPLES = [
+      "test", "read", "note", "call", "buy", "write", "fix", "plan",
+      "ask", "email", "ship", "edit", "sync", "prep", "check", "review",
+    ];
+    const now = Date.now();
+    const newTasks = [];
+    for (let i = 0; i < n; i++) {
+      const depth = Math.random();
+      const idleMin = Math.random() * 180; // 0–180 minutes of fake idle time
+      const title =
+        Math.random() < 0.25
+          ? String.fromCharCode(97 + Math.floor(Math.random() * 26))
+          : SAMPLES[Math.floor(Math.random() * SAMPLES.length)];
+      newTasks.push({
+        id: uid(),
+        title,
+        created_at: now - idleMin * 60_000,
+        last_touched_at: now - idleMin * 60_000,
+        state: "alive",
+        manual_x: 10 + Math.random() * 80,
+        manual_y: WATER_TOP_VH + depth * WATER_RANGE_VH * 0.85,
+      });
+    }
+    setTasks((prev) => [...newTasks, ...prev]);
+  }, []);
+
+  const clearAllTasks = useCallback(() => {
+    setTasks([]);
+    setEditingId(null);
+  }, []);
 
   const floatAway = useCallback((id, leftPct, topVh) => {
     // Pin the card at the release point, then let the float-up keyframe run.
@@ -248,8 +316,12 @@ export function useCurrents() {
     resurface,
     startEditing,
     reposition,
+    resizeTask,
     completeTask,
     floatAway,
+    // Dev-only
+    addRandomTasks,
+    clearAllTasks,
   };
 }
 

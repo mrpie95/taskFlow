@@ -20,8 +20,6 @@ export function Splash({ leftPct, widthPx = 160 }) {
         "--splash-w": `${widthPx}px`,
       }}
     >
-      <div className="splash-ring ring-1" />
-      <div className="splash-ring ring-2" />
       {DROPS.map((d, i) => (
         <div
           key={i}
